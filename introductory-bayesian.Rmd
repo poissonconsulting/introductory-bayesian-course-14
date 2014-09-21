@@ -53,64 +53,134 @@ fn = local({
 
 # Background
 
-The purpose of these course notes is to introduce participants to Bayesian analysis with R and JAGS.
+The purpose of these course notes is to introduce participants to Bayesian analysis with R, RStudio and JAGS. It is assumed that participants are familiar with R and RStudio as covered
+in the Introductory R Course [notes](http://www.poissonconsulting.ca/course/2014/09/12/an-introduction-to-r-course.html).
 
-The notes, which are released under a [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/deed.en_US) license, are a draft of the material to be presented at the [Introductory Bayesian Course](/courses/2014/04/02/bayesian-course.html) in Kelowna on November 20^th^-21^st^, 2014. They were written by [Dr. Joseph Thorley R.P.Bio.](http://www.poissonconsulting.ca/people/joe-thorley.html).
+## Licence
 
-## Statistical Analysis
-
-Statistical analysis uses probability models 
-to provide bounded estimates of parameter values 
-($\theta$) from the data ($D$).
-
-There are two primary approaches to statistical analysis: Bayesian and frequentist. As far as a frequentist is concerned the best estimates of $\theta$ are those values that maximise the *likelihood* ($P(D|\theta)$). 
-A Bayesian on the other hand chooses the values with the highest *posterior* probabilities ($P(\theta|D)$). There are several major consequences of this choice. 
-
-Firstly, Bayesians need to provide a *prior* probability distribution for $\theta$ because (as **Bayes** theorem demonstrates) $P(\theta|D) \propto P(D|\theta)P(\theta)$. Bayesians consider
-this an advantage because prior information can be incorporated into an analysis while frequentists consider it subjective. In most cases Bayesians use low-information priors which have little effect on the posteriors.
-
-Secondly, a frequentist 95% *confidence interval* (CI) is expected to include the underlying value of $\theta$ 95% of the time. A Bayesian 95% *credible interval* (CRI), on the other hand, has a 95% probability of including the true
-value of $\theta$. The difference is subtle but important. For example, the
-the reliability of a frequentist confidence interval depends on *sufficient* sample size - a Bayesian credible interval does not.
-
-The third major consequence is that although likelihood functions can be derived 
-for many models (and therefore used to quickly find the maximum likelihood estimates),
-it is typically not possible to produce formulas to calculate the posterior probababilities.
-For many years this severely limited the use of Bayesian statistics... until people realised
-that the posterior probability distributions can be estimated using Gibbs Sampling.
-
-
-### Gibbs Sampling
-
-Thirdly, requirement Gibbs.....
-
-The development of the BUGS language was a major step because it means 
-that can specify complex models by simply describing the stochastic and deterministic
-relationships between data and parameters.
-
-
-```{r}
-library(rjags)
-
-```
-
-
-
-As a general rule, 
-
-Gibbs Sampling....
-
-Updating.
-
-## R
-
-[R](http://www.r-project.org/) and S-PLUS are implementation of the S language which is a language for 'programming with data'. R is free and open source. S-PLUS is not.
-
-## JAGS
-
-JAGS, WinBUGS and OpenBUGS are implementations of the BUGS language which is a language for describing statistical models. JAGS is an acronym for Just Another Gibbs Sampler. BUGS stands for Bayesian Analysis using Gibbs Sampling. Gibbs Sampling is explained below. JAGS is free, open source, multi-platform and written in C++. WinBUGS is closed source and Windows only. OpenBUGS is not available for OSX and is written in Component Pascal a [dead-end language](http://bayesiancomputation.wordpress.com/2010/06/19/openbugs-vs-jags/).
+The notes, which are released under a [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/deed.en_US) license, are a draft of the material to be presented at the [Introductory Bayesian Course](http://www.poissonconsulting.ca/courses/2014/04/02/bayesian-course.html) in Kelowna on November 20^th^-21^st^, 2014. They were written by [Dr. Joseph Thorley R.P.Bio.](http://www.poissonconsulting.ca/people/joe-thorley.html).
 
 ## Installation
 
-Download the the most recent version of the base distribution binary for your platform from <http://cran.r-project.org/> and install using the default options. Then start up R.
+Download the the most recent version of the R base distribution binary for your platform from <http://cran.r-project.org/> and install using the default options. 
 
+Next download and install RStudio from <http://www.rstudio.com/products/rstudio/download/> using the default options.
+
+Finally, download JAGS from <http://sourceforge.net/projects/mcmc-jags/files/JAGS/> and install with the default options.
+
+## Bayesian vs. Frequentist Statistical Analysis
+
+Statistical analysis uses probability models 
+to provide bounded estimates of parameter values 
+($\theta$) from the data ($y$).
+
+There are two primary approaches to statistical analysis: Bayesian and frequentist. As far as a frequentist is concerned the best estimates of $\theta$ are those values that maximise the *likelihood* which is the probability of the data given the estimates, i.e., $p(y|\theta)$. 
+A Bayesian on the other hand chooses the values with the highest *posterior* probabilities, i.e., $p(\theta|y)$. 
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("Which criterion makes the most sense to you? And why?")
+```
+
+There are several major consequences of this choice. 
+
+One major consequence is that Bayesians need to provide a *prior* probability distributions for $\theta$ because (as **Bayes** theorem demonstrates) $P(\theta|y) \propto P(y|\theta)P(\theta)$. Bayesians consider
+this an advantage because prior information can be incorporated into an analysis while frequentists consider it [subjective](http://dilbert.com/strips/comic/2008-05-08/). In most cases Bayesians use *low-information* priors which have negligible effect on the posteriors.
+
+A second major consequence is that frequentist 95% *confidence intervals* (CIs) are expected to include the actual values of $\theta$ 95% of the time. Bayesian 95% *credible intervals* (CRIs), on the other hand, have a 95% probability of including the actual
+values of $\theta$. The difference is subtle but important. For example, the
+the reliability of frequentist confidence intervals depend on *sufficient*
+sample size - Bayesian credible intervals do not.
+
+A third major consequence is that although likelihood functions can be derived 
+for many models (and therefore used to quickly find the maximum likelihood (ML) estimates),
+it is typically not possible to to calculate the posterior probababilities.
+As a result the posterior probabilities have to be sampled using Markov Chain Monte Carlo (MCMC) algorithms such as Gibbs Sampling.
+
+## Gibbs Sampling
+
+Consider the case where $\theta = (\theta_1, \theta_2, \ldots, \theta_k)$ 
+then Gibbs Sampling proceed as follows
+
+Step 1
+
+:   Choose starting *initial* values $\theta_1^{(0)}, \theta_2^{(0)}, \ldots, \theta_k^{(0)}$
+
+Step 2
+
+:   Sample $\theta_1^{(1)}$ from $p(\theta_1|\theta_2^{(0)},\theta_3^{(0)}, \ldots, \theta_k^{(0)}, y)$
+
+    Sample $\theta_2^{(1)}$ from $p(\theta_2|\theta_1^{(1)},\theta_3^{(0)}, \ldots, \theta_k^{(0)}, y)$
+    
+    $\cdots$
+    
+    Sample $\theta_k^{(1)}$ from $p(\theta_k|\theta_1^{(1)},\theta_2^{(1)}, \ldots, \theta_{k-1}^{(1)}, y)$
+
+Step 3
+
+:   *Iterate* step 2 thousands (or millions) of times to obtain a sample from $p(\theta|y)$.
+ 
+## JAGS and BUGS
+
+Programming an efficient Gibbs Sampler for a particular model is outside the scope of 
+most research projects. 
+Fortunately, JAGS (which stands for Just Another Gibbs Sampler) can take a dataset
+and a model specified in the simple but flexible BUGS language (which stands for Bayesian Analysis Using Gibbs Sampling) and perform iterative sampling for us. 
+
+In order to do this we need to get R talking to JAGS via the `rjags` package
+which we install and 
+load using the following R code.
+
+```{r results='hide'}
+install.packages("rjags") # downloads rjags from CRAN and saves to hard drive
+```
+```{r}
+library(rjags) # loads package in session's search path
+```
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("Which additional R packages does rjags load?")
+```
+
+Now consider the example of a biased coin which has a 75% chance of giving a tail.
+We can generate a dummy data set of 10 values 
+using the `rbinom` R function 
+which provides 
+[pseudo-random](http://search.dilbert.com/comic/Random%20Nine) 
+samples from a binomial distribution.
+
+```{r}
+set.seed(563) # specifies start point for pseudo-random number generation
+y <- rbinom(n = 10, size = 1, prob = 0.75) # generates vector of 1000 samples
+y
+mean(y) # calculates mean of vector
+hist(y) # plots histogram of vector
+```
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("Create a new R project in a folder on your hard drive called course")
+exercise("Create a project script called coin.R to generate 
+  the above six throws of a coin with a 75% chance of a tail.")
+```
+
+In order to estimate the underlying probability of throwing a head we need to specify the following model in the BUGS language and save it in 
+a file called `coin.jags` in the working directory. We also
+need to ensure the data is in `list` form.
+```{r, tidy=FALSE}
+txt <- "model {
+  theta ~ dunif(0, 1) # prior on theta
+  for(i in 1:length(y)) {
+    y[i] ~ dbin(theta, 1) # assumed distribution
+  }
+}"
+writeLines(txt, "coin.jags")
+data <- list(y = y)
+```
+
+Then we call JAGS using rjags as follows to generate 100 samples from 
+$\theta$'s posterior probability distribution.
+```{r}
+model1 <- jags.model("coin.jags", data = data)
+posterior1 <- coda.samples(model1, variable.names = c("theta"), n.iter = 100)
+plot(posterior1)
+summary(posterior1)
+```
