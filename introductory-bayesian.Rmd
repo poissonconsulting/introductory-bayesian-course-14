@@ -279,3 +279,15 @@ exercise("How does the stability of your answer depend on the number of iteratio
 parameters
 - Based on the data and model definition, JAGS uses MCMC algorithms to iteratively sample from the posterior distributions of the monitored parameters
 - The posterior distributions can be summarised in terms of a point estimate and 95% credible intervals
+
+# Regression with trees dataset
+# show convergence - thin...
+# look at residuals
+# go to dlnorm.... allometric
+# plot
+# add confidence intervals
+# add prediction intervals
+
+## go to jaggernaut
+
+
