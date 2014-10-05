@@ -62,11 +62,7 @@ The notes, which are released under a [CC BY 4.0](http://creativecommons.org/lic
 
 ## Installation
 
-Download the the most recent version of the R base distribution binary for your platform from <http://cran.r-project.org/> and install using the default options. 
-
-Next download and install RStudio from <http://www.rstudio.com/products/rstudio/download/> using the default options.
-
-Finally, download JAGS from <http://sourceforge.net/projects/mcmc-jags/files/JAGS/> and install with the default options.
+If you haven't already done so, download the the most recent version of the R base distribution binary for your platform from <http://cran.r-project.org/> and install using the default options. Next download and install RStudio from <http://www.rstudio.com/products/rstudio/download/> using the default options. Finally, download JAGS from <http://sourceforge.net/projects/mcmc-jags/files/JAGS/> and install with the default options. 
 
 ## Bayesian vs. Frequentist Statistical Analysis
 
@@ -75,7 +71,7 @@ to provide bounded estimates of parameter values
 ($\theta$) from the data ($y$).
 
 There are two primary approaches to statistical analysis: Bayesian and frequentist. As far as a frequentist is concerned the best estimates of $\theta$ are those values that maximise the *likelihood* which is the probability of the data given the estimates, i.e., $p(y|\theta)$. 
-A Bayesian on the other hand chooses the values with the highest *posterior* probabilities, i.e., $p(\theta|y)$. 
+A Bayesian on the other hand chooses the values with the highest *posterior* probability - that is to say the probability of the estimates given the data , i.e., $p(\theta|y)$. 
 
 ```{r, echo = FALSE, results = 'asis'}
 exercise("Which criterion makes the most sense to you? And why?")
@@ -98,7 +94,7 @@ As a result the posterior probabilities have to be sampled using Markov Chain Mo
 
 ## Gibbs Sampling
 
-Consider the case where $\theta = (\theta_1, \theta_2, \ldots, \theta_k)$ 
+Consider the case where the parameters $\theta = (\theta_1, \theta_2, \ldots, \theta_k)$ 
 then Gibbs Sampling proceed as follows
 
 Step 1
@@ -118,7 +114,9 @@ Step 2
 Step 3
 
 :   *Iterate* step 2 thousands (or millions) of times to obtain a sample from $p(\theta|y)$.
- 
+
+Any questions?
+
 ## JAGS and BUGS
 
 Programming an efficient Gibbs Sampler for a particular model is outside the scope of 
@@ -126,7 +124,7 @@ most research projects.
 Fortunately, JAGS (which stands for Just Another Gibbs Sampler) can take a dataset
 and a model specified in the simple but flexible BUGS language (which stands for Bayesian Analysis Using Gibbs Sampling) and perform iterative sampling for us. 
 
-In order to do this we need to get R talking to JAGS via the `rjags` package
+In order to do this we need to get R talking to the standalone JAGS program via the `rjags` package
 which we install and 
 load using the following R code.
 
@@ -141,9 +139,27 @@ library(rjags) # loads package in session's search path
 exercise("Which additional R packages does rjags load?")
 ```
 
+The `rjags` package requires the data to be provided in the form of a *list* of logical, integer or numeric vectors, matrices and arrays. 
+
+## Lists
+
+A list can be considered a vector where there is no restriction on any of the elements. A list
+can even include other lists. Objects can be coerced to lists using the `as.list()` function or created anew
+using `list()`.
+```{r}
+y <- list(txt = c("this", "is", "a", "character vector"), 1:4, a_matrix = matrix(1:4, nrow = 2))
+y
+```
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("Convert the `trees` data frame to a list of named vectors with an element named `nrow` that specifies the number of rows in `trees`.")
+```
+
+## Biased Coin
+
 Now consider the example of a biased coin which has a 75% chance of giving a tail.
 We can generate a dummy data set of 10 values 
-using the `rbinom` R function 
+using the R function `rbinom()` 
 which provides 
 [pseudo-random](http://search.dilbert.com/comic/Random%20Nine) 
 samples from a binomial distribution.
@@ -153,34 +169,113 @@ set.seed(563) # specifies start point for pseudo-random number generation
 y <- rbinom(n = 10, size = 1, prob = 0.75) # generates vector of 1000 samples
 y
 mean(y) # calculates mean of vector
-hist(y) # plots histogram of vector
+library(ggplot2)
+qplot(y, geom = "histogram") # plots histogram of vector
 ```
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("Create a new R project in a folder on your hard drive called course")
-exercise("Create a project script called coin.R to generate 
-  the above six throws of a coin with a 75% chance of a tail.")
+exercise("Create a new R project in a folder on your hard drive called `Bayes`")
+exercise("Create a project script called `coin.R` to generate 
+  the above ten throws of a coin with a 75% chance of a tail.")
 ```
 
 In order to estimate the underlying probability of throwing a head we need to specify the following model in the BUGS language and save it in 
-a file called `coin.jags` in the working directory. We also
-need to ensure the data is in `list` form.
+a file called `coin.jags` in the working directory.
 ```{r, tidy=FALSE}
-txt <- "model {
-  theta ~ dunif(0, 1) # prior on theta
-  for(i in 1:length(y)) {
-    y[i] ~ dbin(theta, 1) # assumed distribution
-  }
-}"
+txt <- "model { # start of BUGS model code
+  theta ~ dunif(0, 1) # uniform prior distribution between 1 and 0 for theta
+  for(i in 1:length(y)) { # for loop over the values 1, 2, ..., length of y
+    y[i] ~ dbin(theta, 1) # assumed statistical distribution for observed throws
+  } # end of for loop
+} # end of BUGS model code" 
 writeLines(txt, "coin.jags")
-data <- list(y = y)
+```
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("Add the above code to your `coin.R` script, run it and then open the newly created `coin.jags` file. How does it compare to the BUGS code.")
+exercise("Plot theta's prior distribution as a histogram. You will likely find the `runif()` function useful.")
 ```
 
 Then we call JAGS using rjags as follows to generate 100 samples from 
 $\theta$'s posterior probability distribution.
 ```{r}
-model1 <- jags.model("coin.jags", data = data)
-posterior1 <- coda.samples(model1, variable.names = c("theta"), n.iter = 100)
+model1 <- jags.model("coin.jags", data = list(y = y))
+posterior1 <- coda.samples(model1, variable.names = "theta", n.iter = 100)
 plot(posterior1)
 summary(posterior1)
 ```
+
+Any questions?
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("What is the point estimate for theta?")
+exercise("And the 95% credible interval?")
+```
+
+The same model can be fitted in a frequentist framework using the following R code
+```{r}
+mod <- glm(y ~ 1, data = list(y = y), family = "binomial")
+plogis(coef(mod))
+plogis(confint(mod))
+```
+
+The following BUGS model code includes a derived parameter `range` which 
+test the probability that theta lies between 0.5 and 0.7.
+```{r, tidy=FALSE}
+txt <- "model { # start of BUGS model code
+  theta ~ dunif(0, 1) # uniform prior distribution between 1 and 0 for theta
+  for(i in 1:length(y)) { # for loop over the values 1, 2, ..., length of y
+    y[i] ~ dbin(theta, 1) # assumed statistical distribution for observed throws
+  } # end of for loop
+  range <- theta >= 0.5 && theta <= 0.7
+} # end of BUGS model code" 
+writeLines(txt, "coin.jags")
+```
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("What is the probability that the coin can be expected to produce a tail between 50 and 70% of the time?")
+exercise("How would you answer the above question in the frequentist framework?")
+exercise("What is the probability that the coin can be expected to produce a tail more than 50% of the time?")
+```
+
+If previous studies indicated that the coin was definitely biased towards tails then we could adjust the prior distribution was follows.
+```{r, tidy=FALSE}
+txt <- "model { # start of BUGS model code
+  theta ~ dunif(0.5, 1) # uniform prior distribution between 1 and 0 for theta
+  for(i in 1:length(y)) { # for loop over the values 1, 2, ..., length of y
+    y[i] ~ dbin(theta, 1) # assumed statistical distribution for observed throws
+  } # end of for loop
+} # end of BUGS model code" 
+writeLines(txt, "coin.jags")
+```
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("What does the new prior distribution look like?")
+exercise("How does it effect the posterior distribution?")
+```
+
+Imagine a dam operator comes to you with the following data regarding 
+fish stranding events. Historically fish stranding occurred 15% of the time.
+```{r}
+y <- c(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 
+0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 
+0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0)
+```
+
+```{r}
+```{r, echo = FALSE, results = 'asis'}
+exercise("What is the probability that dam operations have increased the frequency of fish stranding?")
+exercise("How does the stability of your answer depend on the number of iterations?")
+```
+
+### Recap
+
+- JAGS is a stand-alone program
+- A package such as `rjags` is required to allow R to talk to JAGS
+- `rjags` requires the data in the form of a list
+- The BUGS model code defines the posterior distributions and relationships between
+parameters
+- Based on the data and model definition, JAGS uses MCMC algorithms to iteratively sample from the posterior distributions of the monitored parameters
+- The posterior distributions can be summarised in terms of a point estimate and 95% credible intervals
