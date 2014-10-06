@@ -152,7 +152,7 @@ y
 ```
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("Convert the `trees` data frame to a list of named vectors with an element named `nrow` that specifies the number of rows in `trees`.")
+exercise("Convert the `trees` data frame to a list of named vectors.")
 ```
 
 ## Biased Coin
@@ -164,12 +164,12 @@ which provides
 [pseudo-random](http://search.dilbert.com/comic/Random%20Nine) 
 samples from a binomial distribution.
 
-```{r}
+```{r, fig.width=3, fig.height=3}
 set.seed(563) # specifies start point for pseudo-random number generation
 y <- rbinom(n = 10, size = 1, prob = 0.75) # generates vector of 1000 samples
 y
 mean(y) # calculates mean of vector
-library(ggplot2)
+library(ggplot2) # load ggplot2 package
 qplot(y, geom = "histogram") # plots histogram of vector
 ```
 
@@ -198,7 +198,7 @@ exercise("Plot theta's prior distribution as a histogram. You will likely find t
 
 Then we call JAGS using rjags as follows to generate 100 samples from 
 $\theta$'s posterior probability distribution.
-```{r}
+```{r, fig.width=6, fig.height=3}
 model1 <- jags.model("coin.jags", data = list(y = y))
 posterior1 <- coda.samples(model1, variable.names = "theta", n.iter = 100)
 plot(posterior1)
@@ -264,10 +264,9 @@ y <- c(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0)
 ```
 
-```{r}
 ```{r, echo = FALSE, results = 'asis'}
 exercise("What is the probability that dam operations have increased the frequency of fish stranding?")
-exercise("How does the stability of your answer depend on the number of iterations?")
+exercise("How does the stability of your answer depend on the number of iterations, i.e., increase `n.iter` in `coda.samples`?")
 ```
 
 ### Recap
@@ -280,14 +279,58 @@ parameters
 - Based on the data and model definition, JAGS uses MCMC algorithms to iteratively sample from the posterior distributions of the monitored parameters
 - The posterior distributions can be summarised in terms of a point estimate and 95% credible intervals
 
-# Regression with trees dataset
-# show convergence - thin...
-# look at residuals
-# go to dlnorm.... allometric
-# plot
-# add confidence intervals
-# add prediction intervals
+## Black Cherry Trees
 
-## go to jaggernaut
+The `trees` data set in the dataset package provides information on
+girth, height and volume of 31 black cherry trees.
 
+```{r, fig.width=3, fig.height=3}
+qplot(x = Girth, y = Volume, data = trees)
+```
 
+A linear regression of `Volume` against `Girth` 
+
+can be defined as follows in the BUGS language where
+`<-` indicates a *deterministic* as opposed to *stochastic* node.
+```{r, tidy=FALSE}
+txt <- "model {
+  bVolume ~ dnorm(0, 5^-2) # normal prior on intercept
+  bVolumeGirth ~ dnorm(0, 5^-2) # normal prior on slope
+  sVolume ~ dunif(0, 5) # positive uniform prior residual variation
+  for(i in 1:length(Volume)) { 
+    eVolume[i] <- bVolume + bVolumeGirth * Girth[i] # expected volume
+    Volume[i] ~ dnorm(eVolume[i], sVolume^-2) # observed volume drawn from normal
+  } 
+}" 
+writeLines(txt, "trees.jags")
+```
+
+and the posteriors sampled using
+```{r, fig.width=6, fig.height=6}
+model1 <- jags.model("trees.jags", data = as.list(datasets::trees))
+posterior1 <- coda.samples(model1, variable.names = c("bVolume", "bVolumeGirth", "sVolume"), n.iter = 100)
+plot(posterior1)
+summary(posterior1)
+```
+
+The standard deviations of the normal distributions are raised to the
+power of `-2` because for historical reasons Bayesians quantify variation 
+in terms of the *precision* ($\tau$) as opposed to the variance ($\sigma^2$) or standard deviation ($\sigma$) where $\tau = 1/\sigma^2$.
+
+Any questions?
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("Do you consider the model to be using informative priors? If so, 
+         modify them so they are having little to no influence on the posteriors")
+exercise("Do you consider the posterior samples to be ")
+```
+
+#### Regression with trees dataset
+#### show convergence - thin...
+#### look at residuals
+#### go to dlnorm.... allometric
+#### plot
+#### add confidence intervals
+#### add prediction intervals
+
+#### go to jaggernaut
