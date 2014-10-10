@@ -238,7 +238,7 @@ exercise("How would you answer the above question in the frequentist framework?"
 exercise("What is the probability that the coin can be expected to produce a tail more than 50% of the time?")
 ```
 
-If previous studies indicated that the coin was definitely biased towards tails then we could adjust the prior distribution was follows.
+If previous studies indicated that the coin was definitely biased towards tails then we could adjust the prior distribution as follows.
 ```{r, tidy=FALSE}
 txt <- "model { # start of BUGS model code
   theta ~ dunif(0.5, 1) # uniform prior distribution between 1 and 0 for theta
@@ -251,8 +251,10 @@ writeLines(txt, "coin.jags")
 
 ```{r, echo = FALSE, results = 'asis'}
 exercise("What does the new prior distribution look like?")
-exercise("How does it effect the posterior distribution?")
+exercise("How does it affect the posterior distribution?")
 ```
+
+## Fish Stranding Events
 
 Imagine a dam operator comes to you with the following data regarding 
 fish stranding events. Historically fish stranding occurred 15% of the time.
@@ -266,7 +268,7 @@ y <- c(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
 
 ```{r, echo = FALSE, results = 'asis'}
 exercise("What is the probability that dam operations have increased the frequency of fish stranding?")
-exercise("How does the stability of your answer depend on the number of iterations, i.e., increase `n.iter` in `coda.samples`?")
+exercise("How does the inter-run stability of your answer depend on the number of iterations (`n.iter` in `coda.samples` specifies the number of iterations)?")
 ```
 
 ### Recap
@@ -288,29 +290,26 @@ girth, height and volume of 31 black cherry trees.
 qplot(x = Girth, y = Volume, data = trees)
 ```
 
-A linear regression of `Volume` against `Girth` 
+Algebraically, the linear regression of `Volume` against `Girth` can be defined as follows
 
-can be defined as follows in the BUGS language where
-`<-` indicates a *deterministic* as opposed to *stochastic* node.
+$$Volume_{i}  = \alpha + \beta * Girth_{i} + \epsilon_{i}$$
+
+where $\alpha$ is the intercept and $\beta$ is the slope and the error terms (\epsilon_{i}) are  drawn from a normal distribution with an standard deviation of $\sigma$
+
+It is defined as follows in the BUGS language where
+`<-` indicates a *deterministic* as opposed to *stochastic* node (which is indicated by `~`).
 ```{r, tidy=FALSE}
 txt <- "model {
-  bVolume ~ dnorm(0, 5^-2) # normal prior on intercept
-  bVolumeGirth ~ dnorm(0, 5^-2) # normal prior on slope
-  sVolume ~ dunif(0, 5) # positive uniform prior residual variation
+  alpha ~ dnorm(0, 5^-2) # normal prior on intercept
+  beta ~ dnorm(0, 5^-2) # normal prior on slope
+  sigma ~ dunif(0, 5) # positive uniform prior residual variation
+
   for(i in 1:length(Volume)) { 
-    eVolume[i] <- bVolume + bVolumeGirth * Girth[i] # expected volume
-    Volume[i] ~ dnorm(eVolume[i], sVolume^-2) # observed volume drawn from normal
+    eMu[i] <- alpha + beta * Girth[i] # expected volume
+    Volume[i] ~ dnorm(eMu[i], sSigma^-2) # observed volume drawn from normal
   } 
 }" 
 writeLines(txt, "trees.jags")
-```
-
-and the posteriors sampled using
-```{r, fig.width=6, fig.height=6}
-model1 <- jags.model("trees.jags", data = as.list(datasets::trees))
-posterior1 <- coda.samples(model1, variable.names = c("bVolume", "bVolumeGirth", "sVolume"), n.iter = 100)
-plot(posterior1)
-summary(posterior1)
 ```
 
 The standard deviations of the normal distributions are raised to the
@@ -319,10 +318,64 @@ in terms of the *precision* ($\tau$) as opposed to the variance ($\sigma^2$) or 
 
 Any questions?
 
+As before the posteriors can be sampled using the `rjags` function `coda.samples`.
+```{r, fig.width=6, fig.height=6}
+model1 <- jags.model("trees.jags", data = as.list(datasets::trees))
+posterior1 <- coda.samples(model1, variable.names = c("alpha", "beta", "sigma"), n.iter = 1000)
+plot(posterior1)
+summary(posterior1)
+```
+
+Notice how the iterations begin at 1000. This is because the model requires 
+a thousand iterations to complete the *adapative phase*. As it states in the `rjags` help files 
+
+> During the adaptive phase the samplers adapt their behaviour to maximize their efficiency... The sequence of samples generated during this adaptive phase is not a Markov chain, and therefore may not be used for posterior inference on the model.
+
 ```{r, echo = FALSE, results = 'asis'}
-exercise("Do you consider the model to be using informative priors? If so, 
-         modify them so they are having little to no influence on the posteriors")
-exercise("Do you consider the posterior samples to be ")
+exercise("One or more of the prior distributions is constraining the posteriors? Modify them so that they have little to no influence.")
+```
+
+As is the case for frequentist models, a Bayesian model's fit can often
+be assessed through residual plots. The residuals need to be defined in the model code.
+
+```{r, tidy=FALSE}
+txt <- "model {
+  bVolume ~ dnorm(0, 100^-2) 
+  bVolumeGirth ~ dnorm(0, 100^-2) 
+  sVolume ~ dunif(0, 10) 
+
+  for(i in 1:length(Volume)) { 
+    eVolume[i] <- bVolume + bVolumeGirth * Girth[i] 
+    Volume[i] ~ dnorm(eVolume[i], sVolume^-2) 
+  } 
+  residual <- (eVolume - Volume) / sVolume # calculate standardised residuals
+}" 
+writeLines(txt, "trees.jags")
+
+model1 <- jags.model("trees.jags", data = as.list(datasets::trees))
+posterior1 <- coda.samples(model1, variable.names = c("bVolume", "bVolumeGirth", "sVolume", "residual"), n.iter = 1000)
+summary(posterior1)
+estimates <- as.data.frame(summary(posterior1)$statistics)
+estimates <- estimates[substr(row.names(estimates), 1, 8) == "residual",]
+trees <- cbind(trees, estimates)
+quartz()
+qplot(x = Volume, y = Mean, data = trees)
+```
+
+the following code 
+
+```{r, tidy=FALSE}
+txt <- "model {
+  bVolume ~ dnorm(0, 5^-2) 
+  bVolumeGirth ~ dnorm(0, 5^-2) 
+  sVolume ~ dunif(0, 10) 
+  for(i in 1:length(Volume)) { 
+    eVolume[i] <- bVolume + bVolumeGirth * Girth[i]
+    Volume[i] ~ dnorm(eVolume[i], sVolume^-2) 
+  } 
+  residuals <- Volume - eVolume
+}" 
+writeLines(txt, "trees.jags")
 ```
 
 #### Regression with trees dataset
