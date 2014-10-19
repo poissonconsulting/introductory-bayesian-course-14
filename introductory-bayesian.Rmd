@@ -12,7 +12,6 @@ output:
 ---
 
 ```{r,echo = FALSE, results='asis'}
-
 library(knitr)
 opts_chunk$set(tidy = TRUE)
 options(width = 70)
@@ -54,7 +53,7 @@ fn = local({
 # Background
 
 The purpose of these course notes is to introduce participants to Bayesian analysis with R, RStudio and JAGS. It is assumed that participants are familiar with R and RStudio as covered
-in the Introductory R Course [notes](http://www.poissonconsulting.ca/course/2014/09/12/an-introduction-to-r-course.html).
+in the Introductory R Course notes at <http://www.poissonconsulting.ca/course/2014/09/12/an-introduction-to-r-course.html>.
 
 ## Licence
 
@@ -114,8 +113,6 @@ Step 2
 Step 3
 
 :   *Iterate* step 2 thousands (or millions) of times to obtain a sample from $p(\theta|y)$.
-
-Any questions?
 
 ## JAGS and BUGS
 
@@ -294,45 +291,83 @@ Algebraically, the linear regression of `Volume` against `Girth` can be defined 
 
 $$Volume_{i}  = \alpha + \beta * Girth_{i} + \epsilon_{i}$$
 
-where $\alpha$ is the intercept and $\beta$ is the slope and the error terms (\epsilon_{i}) are  drawn from a normal distribution with an standard deviation of $\sigma$
+where $\alpha$ is the intercept and $\beta$ is the slope and the error terms ($\epsilon_{i}$) are  drawn from a normal distribution with an standard deviation of $\sigma$.
 
-It is defined as follows in the BUGS language where
+In the frequentist framework it can be defined and fitted as follows
+```{r, tidy=FALSE}
+mod <- lm(Volume ~ Girth, data = trees)
+summary(mod)
+```
+
+and plotted using
+
+```{r, message=FALSE, warning=FALSE}
+install.packages("devtools", quiet = TRUE)
+library(devtools)
+install_github("poissonconsulting/datalist@v0.4")
+library(datalist)
+```
+
+```{r, fig.width=3, fig.height=3}
+newdata <- datalist::new_data(trees, "Girth")
+pred <- predict(mod, newdata, interval = "conf")
+newdata <- cbind(newdata, data.frame(pred))
+
+gp <- ggplot(data = newdata, aes(x = Girth, y = fit))
+gp <- gp + geom_point(data = trees, aes(y = Volume))
+gp <- gp + geom_line()
+gp <- gp + geom_line(aes(y = lwr), linetype = "dashed")
+gp <- gp + geom_line(aes(y = upr), linetype = "dashed")
+gp <- gp + scale_y_continuous(name = "Volume")
+
+print(gp)
+```
+
+The model can be defined as follows in the BUGS language where
 `<-` indicates a *deterministic* as opposed to *stochastic* node (which is indicated by `~`).
 ```{r, tidy=FALSE}
 txt <- "model {
-  alpha ~ dnorm(0, 5^-2) # normal prior on intercept
-  beta ~ dnorm(0, 5^-2) # normal prior on slope
-  sigma ~ dunif(0, 5) # positive uniform prior residual variation
+  alpha ~ dnorm(0, 50^-2) # normal prior on intercept
+  beta ~ dnorm(0, 50^-2) # normal prior on slope
+  sigma ~ dunif(0, 50) # positive uniform prior residual variation
 
   for(i in 1:length(Volume)) { 
     eMu[i] <- alpha + beta * Girth[i] # expected volume
-    Volume[i] ~ dnorm(eMu[i], sSigma^-2) # observed volume drawn from normal
+    Volume[i] ~ dnorm(eMu[i], sigma^-2) # observed volume drawn from normal
   } 
 }" 
 writeLines(txt, "trees.jags")
 ```
 
 The standard deviations of the normal distributions are raised to the
-power of `-2` because for historical reasons Bayesians quantify variation 
+power of `-2` because (for historical reasons) Bayesians quantify variation 
 in terms of the *precision* ($\tau$) as opposed to the variance ($\sigma^2$) or standard deviation ($\sigma$) where $\tau = 1/\sigma^2$.
 
-Any questions?
+```{r, echo = FALSE, results = 'asis'}
+exercise("What do you notice about the prior distribution used for `sigma` versus the other two parameters? Why do you think this is?")
+```
 
 As before the posteriors can be sampled using the `rjags` function `coda.samples`.
-```{r, fig.width=6, fig.height=6}
+```{r, warnings = FALSE, messages = FALSE, fig.width=6, fig.height=6}
 model1 <- jags.model("trees.jags", data = as.list(datasets::trees))
 posterior1 <- coda.samples(model1, variable.names = c("alpha", "beta", "sigma"), n.iter = 1000)
 plot(posterior1)
-summary(posterior1)
 ```
 
 Notice how the iterations begin at 1000. This is because the model requires 
-a thousand iterations to complete the *adapative phase*. As it states in the `rjags` help files 
+a thousand iterations to complete the *adaptive phase*. As it states in the `rjags` help files 
 
 > During the adaptive phase the samplers adapt their behaviour to maximize their efficiency... The sequence of samples generated during this adaptive phase is not a Markov chain, and therefore may not be used for posterior inference on the model.
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("One or more of the prior distributions is constraining the posteriors? Modify them so that they have little to no influence.")
+exercise("What do you notice about the trace plots for `alpha` and `beta`?And why do you think this is the case?")
+```
+
+Any autocorrelation in the traceplots can be quantified using the `coda::autocorr.diag`
+function
+
+```{r, fig.width=6, fig.height=6}
+autocorr.diag(posterior1)
 ```
 
 As is the case for frequentist models, a Bayesian model's fit can often
