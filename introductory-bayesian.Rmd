@@ -61,7 +61,28 @@ The notes, which are released under a [CC BY 4.0](http://creativecommons.org/lic
 
 ## Installation
 
-If you haven't already done so, download the the most recent version of the R base distribution binary for your platform from <http://cran.r-project.org/> and install using the default options. Next download and install RStudio from <http://www.rstudio.com/products/rstudio/download/> using the default options. Finally, download JAGS from <http://sourceforge.net/projects/mcmc-jags/files/JAGS/> and install with the default options. 
+If you haven't already done so, download the the most recent version of the R base distribution binary for your platform from <http://cran.r-project.org/> and install using the default options. Next download and install RStudio from <http://www.rstudio.com/products/rstudio/download/> using the default options. Then, download JAGS from <http://sourceforge.net/projects/mcmc-jags/files/JAGS/> and install with the default options. 
+
+To make sure you have all the required packages execute
+the following code at the command line
+```{r, message = FALSE}
+
+install.packages("devtools")
+install.packages("dplyr")
+install.packages("ggplot2")
+install.packages("rjags")
+
+library(devtools)
+
+install_github("poissonconsulting/tulip@v0.0.11")
+install_github("poissonconsulting/datalist@v0.4")
+install_github("poissonconsulting/juggler@v0.1.3")
+install_github("poissonconsulting/jaggernaut@v1.8.5")
+
+library(dplyr)
+library(ggplot2)
+library(jaggernaut)
+```
 
 ## Bayesian vs. Frequentist Statistical Analysis
 
@@ -121,36 +142,8 @@ most research projects.
 Fortunately, JAGS (which stands for Just Another Gibbs Sampler) can take a dataset
 and a model specified in the simple but flexible BUGS language (which stands for Bayesian Analysis Using Gibbs Sampling) and perform iterative sampling for us. 
 
-In order to do this we need to get R talking to the standalone JAGS program via the `rjags` package
-which we install and 
-load using the following R code.
-
-```{r results='hide'}
-install.packages("rjags") # downloads rjags from CRAN and saves to hard drive
-```
-```{r}
-library(rjags) # loads package in session's search path
-```
-
-```{r, echo = FALSE, results = 'asis'}
-exercise("Which additional R packages does rjags load?")
-```
-
-The `rjags` package requires the data to be provided in the form of a *list* of logical, integer or numeric vectors, matrices and arrays. 
-
-## Lists
-
-A list can be considered a vector where there is no restriction on any of the elements. A list
-can even include other lists. Objects can be coerced to lists using the `as.list()` function or created anew
-using `list()`.
-```{r}
-y <- list(txt = c("this", "is", "a", "character vector"), 1:4, a_matrix = matrix(1:4, nrow = 2))
-y
-```
-
-```{r, echo = FALSE, results = 'asis'}
-exercise("Convert the `trees` data frame to a list of named vectors.")
-```
+In order to do this we use the `jaggernaut` package to talk to
+the standalone JAGS program via the `rjags` package.
 
 ## Biased Coin
 
@@ -166,7 +159,6 @@ set.seed(563) # specifies start point for pseudo-random number generation
 y <- rbinom(n = 10, size = 1, prob = 0.75) # generates vector of 1000 samples
 y
 mean(y) # calculates mean of vector
-library(ggplot2) # load ggplot2 package
 qplot(y, geom = "histogram") # plots histogram of vector
 ```
 
@@ -176,27 +168,24 @@ exercise("Create a project script called `coin.R` to generate
   the above ten throws of a coin with a 75% chance of a tail.")
 ```
 
-In order to estimate the underlying probability of throwing a head we need to specify the following model in the BUGS language and save it in 
-a file called `coin.jags` in the working directory.
+In order to estimate the underlying probability of throwing a head we need to specify the following model in the BUGS language and save it as an object of class `jags_model`.
 ```{r, tidy=FALSE}
-txt <- "model { # start of BUGS model code
+mcoin1 <- jags_model("model { # start of BUGS model code
   theta ~ dunif(0, 1) # uniform prior distribution between 1 and 0 for theta
   for(i in 1:length(y)) { # for loop over the values 1, 2, ..., length of y
     y[i] ~ dbin(theta, 1) # assumed statistical distribution for observed throws
   } # end of for loop
-} # end of BUGS model code" 
-writeLines(txt, "coin.jags")
+} # end of BUGS model code") 
 ```
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("Add the above code to your `coin.R` script, run it and then open the newly created `coin.jags` file. How does it compare to the BUGS code.")
-exercise("Plot theta's prior distribution as a histogram. You will likely find the `runif()` function useful.")
+exercise("Plot theta's prior distribution as a histogram. You will likely find the `runif` and `hist` functions useful.")
 ```
 
-Then we call JAGS using rjags as follows to generate 100 samples from 
+Then we call JAGS using jaggernaut to generate 100 samples from 
 $\theta$'s posterior probability distribution.
 ```{r, fig.width=6, fig.height=3}
-mcoin1 <- jags.model("coin.jags", data = list(y = y))
+mcoin1 <- jags_analysis("coin.jags", data = data.frame(y = y))
 pcoin1 <- coda.samples(mcoin1, variable.names = "theta", n.iter = 100)
 plot(pcoin1)
 summary(pcoin1)
@@ -301,13 +290,6 @@ summary(mod)
 
 and plotted using
 
-```{r, message=FALSE, warning=FALSE}
-install.packages("devtools", quiet = TRUE)
-library(devtools)
-install_github("poissonconsulting/datalist@v0.4")
-library(datalist)
-```
-
 ```{r, fig.width=3, fig.height=3}
 newdata <- datalist::new_data(trees, "Girth")
 pred <- predict(mod, newdata, interval = "conf")
@@ -385,8 +367,6 @@ Below we attempt to remove the cross correlation between
 the intercept (`alpha`) and the slope (`beta`)
 by *centering* `Girth`
 ```{r, warning = FALSE, message = FALSE}
-install.packages("dplyr", quiet = TRUE)
-library(dplyr)
 trees <- dplyr::mutate(datasets::trees, Girth = Girth - mean(Girth))
 mtrees2 <- jags.model("trees.jags", data = as.list(trees), quiet = TRUE)
 ptrees2 <- coda.samples(mtrees2, variable.names = c("alpha", "beta", "sigma"), n.iter = 1000)
@@ -408,12 +388,6 @@ To circumvent these problems I wrote the R package `jaggernaut`
 which acts as a wrapper on `rjags`. The following code implements
 the previous model in jaggernaut and allows the subsequent generation 
 of predictions, fitted values and residuals.
-```{r, }
-install_github("poissonconsulting/tulip@v0.0.11", quiet = TRUE)
-install_github("poissonconsulting/juggler@v0.1.3", quiet = TRUE)
-install_github("poissonconsulting/jaggernaut@v1.8.5", quiet = TRUE)
-library(jaggernaut)
-```
 
 ```{r, message = FALSE, warning=FALSE}
 mtrees3 <- jags_model("model {
@@ -435,7 +409,15 @@ derived_code = "data {
 ",
 monitor = c("alpha", "beta", "sigma"),
 select = c("Volume", "Girth+"))
+```
 
+As their names imply the `monitor` and `select` arguments
+specify the parameters to monitor and the variables to select
+from the input dataset. The `+` after `Girth` in the `select`
+argument indicates that Girth is to be back-transformed by 
+subtracting its mean
+
+```{r, message = FALSE, warning=FALSE}
 atrees3 <- jags_analysis(mtrees3, data = datasets::trees)
 summary(atrees3)
 
