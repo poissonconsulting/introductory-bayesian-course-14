@@ -72,6 +72,9 @@ library(devtools)
 #install.packages("dplyr", quiet = TRUE)
 library(dplyr)
 
+#install.packages("scales", quiet = TRUE)
+library(scales)
+
 #install.packages("ggplot2", quiet = TRUE)
 library(ggplot2)
 
@@ -99,11 +102,11 @@ exercise("Which criterion makes the most sense to you? And why?")
 
 There are several major consequences of this choice. 
 
-One major consequence is that Bayesians need to provide a *prior* probability distributions for $\theta$ because (as **Bayes** theorem demonstrates) $P(\theta|y) \propto P(y|\theta)P(\theta)$. Bayesians consider
+One major consequence is that Bayesians need to provide a *prior* probability distribution for $\theta$ because (as **Bayes** theorem demonstrates) $P(\theta|y) \propto P(y|\theta)P(\theta)$. Bayesians consider
 this an advantage because prior information can be incorporated into an analysis while frequentists consider it [subjective](http://dilbert.com/strips/comic/2008-05-08/). In most cases Bayesians use *low-information* priors which have negligible effect on the posteriors.
 
-A second major consequence is that frequentist 95% *confidence intervals* (CIs) are expected to include the actual values of $\theta$ 95% of the time. Bayesian 95% *credible intervals* (CRIs), on the other hand, have a 95% probability of including the actual
-values of $\theta$. The difference is subtle but important. For example, the
+A second major consequence is that frequentist 95% *confidence intervals* (CIs) are expected to include the actual value of $\theta$ 95% of the time. Bayesian 95% *credible intervals* (CRIs), on the other hand, have a 95% probability of including the actual
+value of $\theta$. The difference is subtle but important. For example,
 the reliability of frequentist confidence intervals depend on *sufficient*
 sample size - Bayesian credible intervals do not.
 
@@ -179,6 +182,11 @@ exercise("Plot theta's prior distribution as a histogram. You will likely find t
 
 Then we call JAGS using `jaggernaut` in `debug` mode to generate 100 samples from 
 $\theta$'s posterior probability distribution.
+
+With these settings `jaggernaut` 
+
+- generates two chains of 50 iterations in length
+
 ```{r, message=FALSE, warning=FALSE, results='hide'}
 acoin1 <- jags_analysis(mcoin1, data = data.frame(y = y), mode = "debug")
 ```
@@ -188,13 +196,13 @@ plot(acoin1)
 coef(acoin1)
 ```
 
-The model output indicates that the point estimate is `r round(coef(acoin1)[,"estimate"],2)`, the 95% credible interval (CRI) is `r round(coef(acoin1)[,"lower"],2)` to `r round(coef(acoin1)[,"upper"],2)`, the standard deviation is `r round(coef(acoin1)[,"sd"],2)`,
+The model output indicates that the point estimate is `r round(coef(acoin1)[,"estimate"],2)`, the 95% credible interval is `r round(coef(acoin1)[,"lower"],2)` to `r round(coef(acoin1)[,"upper"],2)`, the standard deviation is `r round(coef(acoin1)[,"sd"],2)`,
 the percent relative error is `r coef(acoin1)[,"error"]` and the significance is `r coef(acoin1)[,"significance"]`.
 
 
 If previous studies indicated that the coin was biased towards tails then we could adjust the prior distribution as follows.
 ```{r, tidy=FALSE}
-mcoin2 <- jags_model("model { # start of BUGS model code
+mcoin2 <- jags_model("model {
   theta ~ dunif(0.5, 1) # new prior distribution
   for(i in 1:length(y)) { 
     y[i] ~ dbin(theta, 1) 
@@ -238,7 +246,7 @@ opposed to *stochastic* node (which is indicated by `~`).
 mtrees1 <- jags_model("model {
   alpha ~ dnorm(0, 50^-2) # normal prior on intercept
   beta ~ dnorm(0, 50^-2) # normal prior on slope
-  sigma ~ dunif(0, 50) # positive uniform prior residual variation
+  sigma ~ dunif(0, 50) # positive uniform prior on residual variation
 
   for(i in 1:length(Volume)) { 
     eVolume[i] <- alpha + beta * Girth[i] # expected volume
@@ -266,9 +274,12 @@ exercise("What do the trace plots suggest to you?")
 ```
 
 The $\hat{R}$ metric uses the within-chain and between-chain variances
-to quantify their similarities with a value of `1.0` indicative of
-convergence. For reports an $\hat{R} < 1.1$ is considered sufficient
-while papers typically demand an $\hat{R} < 1.05$.
+to quantify the extent to which the chains have converged on the same distribution. Although a value of `1.0` indicates complete 
+convergence, for most purposes an $\hat{R} < 1.1$ is considered sufficient.
+
+The function `rhat` can return the $\hat{R}$ value for
+each monitored parameter.
+
 ```{r}
 rhat(atrees1, parm = "fixed", combine = FALSE)
 ```
@@ -280,47 +291,44 @@ and/or increase the number of iterations.
 
 ### Chain Mixing
 
-Poor chain mixing/sampling efficiency is often caused by cross correlations
-between parameters. Examination of the residual plots indicates
-that `alpha` and `beta` are cross correlated. The following code uses
-the `select` argument to specify the required variables in the input
+Poor chain mixing, which manifests as high levels of autocorrelation, is often caused by cross correlations
+between parameters. Examination of the previous trace plots indicates
+that `alpha` and `beta` are cross correlated. The following code sets the `select` terms of `mtrees1` model so that it specifies the required variables in the input
 data with the `+` suffix on `Girth` indicating that it is to be
 centered (`x - mean(x)`) before being passed to JAGS. 
 
 ```{r, tidy=FALSE}
-mtrees2 <- jags_model("model {
-  alpha ~ dnorm(0, 50^-2) # normal prior on intercept
-  beta ~ dnorm(0, 50^-2) # normal prior on slope
-  sigma ~ dunif(0, 50) # positive uniform prior residual variation
-
-  for(i in 1:length(Volume)) { 
-    eVolume[i] <- alpha + beta * Girth[i] # expected volume
-    Volume[i] ~ dnorm(eVolume[i], sigma^-2) # observed volume drawn from normal
-  } 
-}",
-select = c("Volume", "Girth+"))
+select(mtrees1) <- c("Volume", "Girth+")
 ```
 
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("How does centering `Girth` change the trace plots and rhat values?")
+exercise("Does centering `Girth` improve chain mixing?")
+```
+
+Note if you ever want to examine the actual data being passed
+to JAGS set the modify_data term of your `jags_model` 
+object to be a simple function that prints and returns its one argument 
+```{r, tidy=FALSE}
+modify_data(mtrees1) <- function (data) { print(data); data }
 ```
 
 ### Iterations
 
-Convergence can be achieved by increasing the number of
-iterations and discarding the initial burnin period.
+Convergence can also be achieved by increasing the number of
+iterations.
 This is easy to achieve using jaggernaut, just
 switch to `report` mode and set `niters = 10^4`
 
-```{r, message=FALSE, warning=FALSE, results='hide'}
+```{r}
 opts_jagr(mode = "report")
 atrees3 <- jags_analysis(mtrees1, data = datasets::trees, niters = 10^4)
 ```
 
 With these settings `jaggernaut` 
 
-- conducts adaptive phase to maximize sampling efficiency
+- undergoes an adaptive phase of xx iterations 
+to maximize sampling efficiency (chain mixing)
 - generates three chains of 10^4 iterations in length.
 - discards the first half of each chain as burnin
 - thins each chain so that the total number of MCMC samples
@@ -336,4 +344,184 @@ For more information on the possible modes and options type `?opts_jagr`.
 ```{r, echo = FALSE, results = 'asis'}
 exercise("How does switching to report mode with 10^3 iterations
          affect the trace plots with and without centering Girth?")
+```
+
+### Predictions and Residuals
+
+Many researchers estimate fitted values, predictions and residuals by monitoring additional nodes in their model code. The disadvantages of
+this approach are that: 
+
+- the model code becomes more complicated. 
+- the MCMC sampling takes longer.
+- adding deried parameters requires a model rerun.
+- the table of parameter estimates becomes unwiedly.
+
+`jaggernaut` overcomes these problems by allowing 
+derived parameters to be defined
+in a separate chunk of BUGS code as demonstrated below.
+
+```{r, tidy=FALSE, message=FALSE, warning=FALSE, results='hide'}
+derived_code(mtrees1) <- "data {
+  for(i in 1:length(Volume)) { 
+    prediction[i] <- alpha + beta * Girth[i]
+  }
+  residual <- (Volume - prediction) / sigma
+}"
+
+atrees4 <- jags_analysis(mtrees1, data = datasets::trees, niters = 10^4)
+
+prediction <- predict(atrees4, newdata = "Girth")
+```
+
+```{r, fig.width=3, fig.height=3, ,message=FALSE, warning=FALSE}
+gp <- ggplot(data = prediction, aes(x = Girth, y = estimate))
+gp <- gp + geom_point(data = dataset(atrees3), aes(y = Volume))
+gp <- gp + geom_line()
+gp <- gp + geom_line(aes(y = lower), linetype = "dashed")
+gp <- gp + geom_line(aes(y = upper), linetype = "dashed")
+gp <- gp + scale_y_continuous(name = "Volume")
+
+print(gp)
+
+residuals <- residuals(atrees4)
+fitted <- fitted(atrees4)
+
+qplot(fitted$estimate, residuals$estimate, xlab = "Fitted", ylab = "Residual") + geom_hline(yintercept = 0) + geom_smooth(se = FALSE)
+```
+
+
+As discussed in the R course [notes](http://www.poissonconsulting.ca/course/2014/09/12/an-introduction-to-r-course.html) the relationship between Volume and Girth is expected to be [allometric](http://www.nature.com/scitable/knowledge/library/allometry-the-study-of-biological-scaling-13228439) because the cross-sectional area at an given point scales to the square of the girth (circumference).
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("Fit an allometric relationship by log transforming Volume and Girth within the model code (in this case do not center Girth). Does the residual plot suggest an improvement in the model?")
+
+exercise("Does adding log transformed Height improve the model?")
+```
+
+The basic ANCOVA (analysis of covariance) model includes one categorical and one continous predictor variable without interactions. It can be expressed algebraically as follows
+
+$$y_{ij}  = \alpha_{i} + \beta * x_{j} + \epsilon_{ij}$$
+
+where $\alpha_{i}$ is the intercept for the i^th^ group mean and $\beta$ is the slope and the error terms ($\epsilon_{ij}$) are independently drawn from a normal distribution with standard deviation $\sigma$.
+
+The following code fits the basic ANCOVA model to the ToothGrowth data and plots the model's predictions and residuals.
+
+```{r, tidy=FALSE}
+mtg1 <- jags_model("model {
+  for(i in 1:nsupp) {
+    alpha[i] ~ dnorm(0, 40^-2)
+  }
+  beta ~ dnorm(0, 20^-2)
+  sigma ~ dunif(0, 20)
+
+  for(i in 1:length(len)) { 
+    eLen[i] <- alpha[supp[i]] + beta * dose[i]
+    len[i] ~ dnorm(eLen[i], sigma^-2)
+  } 
+}",
+derived_code  = " data{
+  for(i in 1:length(len)) { 
+    prediction[i] <- alpha[supp[i]] + beta * dose[i]
+  }
+  residual <- (len - prediction) / sigma
+}",
+select = c("len", "dose+", "supp"))
+```
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+atg1 <- jags_analysis(mtg1, data = datasets::ToothGrowth)
+```
+
+```{r, fig.width = 4, fig.height = 3}
+coef(atg1)
+
+prediction <- predict(atg1, newdata = c("supp", "dose"))
+
+gp <- ggplot(data = prediction, aes(x = dose, y = estimate, color = supp, shape = supp))
+gp <- gp + geom_point(data = dataset(atg1), aes(y = len))
+gp <- gp + geom_line()
+gp <- gp + scale_y_continuous(name = "len")
+
+print(gp)
+
+residuals <- residuals(atg1)
+residuals$fitted <- fitted(atg1)$estimate
+
+qplot(fitted, estimate, color = supp, shape = supp, data = residuals, xlab = "Fitted", ylab = "Residual") + geom_hline(yintercept = 0)
+```
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("What does the plot of the residual versus fitted values suggest about the model fit?")
+
+exercise("Is the effect of OJ significantly different from that of VC?")
+
+exercise("Modify the new ANCOVA model to fit 1) a linear regression for dose, 2) an ANOVA for supp and 3) an ANCOVA with an interaction between dose and supp. Which model do you prefer?")
+```
+
+### Effects Size
+
+Often the results of an analysis are easier to understand when 
+they are presented in terms of the percent change in the response.
+The following code predicts and plots the percent change in `len` relative to 0.5 mg of VC for the ToothGrowth data set .
+
+```{r, fig.width = 4, fig.height = 3}
+prediction <- predict(atg1, newdata = c("supp", "dose"), base = data.frame(supp = "VC", dose = 0.5))
+
+gp <- ggplot(data = prediction, aes(x = dose, y = estimate, color = supp, shape = supp))
+gp <- gp + geom_line()
+gp <- gp + geom_line(aes(y = lower), linetype = "dashed")
+gp <- gp + geom_line(aes(y = upper), linetype = "dashed")
+gp <- gp + scale_y_continuous(name = "Effect on len (%)", labels = percent)
+
+print(gp)
+```
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("Plot the percent change in `len` for your preferred
+         ToothGrowth model relative to 1 mg of OJ")
+```
+
+### Hierarchical Models
+
+The population of house martins in a small Swiss village has been surveyed by Reto Freuler since 1990
+
+The `jaggernaut` package includes data sets from kery and Schaub's  excellent book Population Analysis using WinBUGS. Here we consider 
+the annual surveys of house martins in a small swiss village from 1990 to 2009.
+
+```{r, fig.width = 4, fig.height = 3}
+
+data(hm)
+qplot(year, hm, data = hm) + geom_line() + expand_limits(y = 0)
+```
+
+The following BUGS code uses a state-space population growth 
+model to estimate the probability that the population size in 2015 would be lower than in 2009. 
+
+Algebraically the state space model can be written 
+
+$log(N_{t+1}) = log(N_{t}) + r_{t}$ where $r_{t}$ is the the stochastic population growth rate and$r_{t} \sim N(\bar{r}, \sigma_{r})$
+
+```{r, tidy=FALSE}
+mhm1 <- jags_model("model {
+                   
+  logN.est[1] ~ dnorm(5.6, 10^-2)
+  mean.r ~ dnorm(1, 10^-2)
+  sigma.proc ~ dunif(0, 1)
+  sigma.obs ~ dunif(0, 1)
+  
+  for (i in 1:length(year)) {
+    r[i] ~ dnorm(mean.r, sigma.proc^-2)
+    logN.est[i+1] <- logN.est[i] + r[i]
+    hm[i] ~ dlnorm(logN.est[i], sigma.obs^-2)
+  }
+}",
+derived_code = "model{
+  for (i in 1:length(year)) {
+    log(prediction[i]) <- logN.est[year[i]]
+  }
+}",
+random_effects = list(r = "year", logN.est = "year"),
+select = c("hm","year")
+)
+
 ```
