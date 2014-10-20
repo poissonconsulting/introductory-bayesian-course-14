@@ -196,10 +196,10 @@ exercise("Plot theta's prior distribution as a histogram. You will likely find t
 Then we call JAGS using rjags as follows to generate 100 samples from 
 $\theta$'s posterior probability distribution.
 ```{r, fig.width=6, fig.height=3}
-model1 <- jags.model("coin.jags", data = list(y = y))
-posterior1 <- coda.samples(model1, variable.names = "theta", n.iter = 100)
-plot(posterior1)
-summary(posterior1)
+mcoin1 <- jags.model("coin.jags", data = list(y = y))
+pcoin1 <- coda.samples(mcoin1, variable.names = "theta", n.iter = 100)
+plot(pcoin1)
+summary(pcoin1)
 ```
 
 Any questions?
@@ -332,8 +332,8 @@ txt <- "model {
   sigma ~ dunif(0, 50) # positive uniform prior residual variation
 
   for(i in 1:length(Volume)) { 
-    eMu[i] <- alpha + beta * Girth[i] # expected volume
-    Volume[i] ~ dnorm(eMu[i], sigma^-2) # observed volume drawn from normal
+    eVolume[i] <- alpha + beta * Girth[i] # expected volume
+    Volume[i] ~ dnorm(eVolume[i], sigma^-2) # observed volume drawn from normal
   } 
 }" 
 writeLines(txt, "trees.jags")
@@ -348,10 +348,10 @@ exercise("What do you notice about the prior distribution used for `sigma` versu
 ```
 
 As before the posteriors can be sampled using the `rjags` function `coda.samples`.
-```{r, warnings = FALSE, messages = FALSE, fig.width=6, fig.height=6}
-model1 <- jags.model("trees.jags", data = as.list(datasets::trees))
-posterior1 <- coda.samples(model1, variable.names = c("alpha", "beta", "sigma"), n.iter = 1000)
-plot(posterior1)
+```{r, warning = FALSE, message = FALSE, fig.width=6, fig.height=6}
+mtrees1 <- jags.model("trees.jags", data = as.list(datasets::trees), quiet = TRUE)
+ptrees1 <- coda.samples(mtrees1, variable.names = c("alpha", "beta", "sigma"), n.iter = 1000)
+plot(ptrees1)
 ```
 
 Notice how the iterations begin at 1000. This is because the model requires 
@@ -363,62 +363,105 @@ a thousand iterations to complete the *adaptive phase*. As it states in the `rja
 exercise("What do you notice about the trace plots for `alpha` and `beta`?And why do you think this is the case?")
 ```
 
-Any autocorrelation in the traceplots can be quantified using the `coda::autocorr.diag`
-function
+Any autocorrelation in the traceplots can be quantified using the
+`coda` function `autocorr.diag`
 
-```{r, fig.width=6, fig.height=6}
-autocorr.diag(posterior1)
+```{r}
+autocorr.diag(ptrees1)
 ```
 
-As is the case for frequentist models, a Bayesian model's fit can often
-be assessed through residual plots. The residuals need to be defined in the model code.
+Researchers sometimes reduce the autocorrelation
+by thinning the chains. However as argued and demonstrated by xx, although high levels
+of autocorrelation may require longer chains thinning per se is never justified (although longer chains may require thinning to ensure they
+remain manageable).
 
-```{r, tidy=FALSE}
-txt <- "model {
-  bVolume ~ dnorm(0, 100^-2) 
-  bVolumeGirth ~ dnorm(0, 100^-2) 
-  sVolume ~ dunif(0, 10) 
+It is worth noting that high levels of autocorrelation is often caused by cross correlations between parameters
+```{r}
+crosscorr(ptrees1)
+```
+which can often be eliminated by reparameterising the model. 
 
+Below we attempt to remove the cross correlation between
+the intercept (`alpha`) and the slope (`beta`)
+by *centering* `Girth`
+```{r, warning = FALSE, message = FALSE}
+install.packages("dplyr", quiet = TRUE)
+library(dplyr)
+trees <- dplyr::mutate(datasets::trees, Girth = Girth - mean(Girth))
+mtrees2 <- jags.model("trees.jags", data = as.list(trees), quiet = TRUE)
+ptrees2 <- coda.samples(mtrees2, variable.names = c("alpha", "beta", "sigma"), n.iter = 1000)
+```
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("Does centering `Girth` eliminate the cross correlation?")
+exercise("What is the effect of centering `Girth` on the
+         traceplots and autocorrelations?")
+```
+
+Many researchers estimate fitted values, predictions and residuals by adding extra monitored nodes to their model code. The disadvantages of
+this approach are that: the model code becomes more complicated; 
+the MCMC sampling takes longer and the table of parameter estimates
+becomes unwiedly. Plus, if the variables have been transformed 
+back-transformation of the values is also required.
+
+To circumvent these problems I wrote the R package `jaggernaut`
+which acts as a wrapper on `rjags`. The following code implements
+the previous model in jaggernaut and allows the subsequent generation 
+of predictions, fitted values and residuals.
+```{r, }
+install_github("poissonconsulting/tulip@v0.0.11", quiet = TRUE)
+install_github("poissonconsulting/juggler@v0.1.3", quiet = TRUE)
+install_github("poissonconsulting/jaggernaut@v1.8.5", quiet = TRUE)
+library(jaggernaut)
+```
+
+```{r, message = FALSE, warning=FALSE}
+mtrees3 <- jags_model("model {
+  alpha ~ dnorm(0, 50^-2) # normal prior on intercept
+  beta ~ dnorm(0, 50^-2) # normal prior on slope
+  sigma ~ dunif(0, 50) # positive uniform prior residual variation
+  
   for(i in 1:length(Volume)) { 
-    eVolume[i] <- bVolume + bVolumeGirth * Girth[i] 
-    Volume[i] ~ dnorm(eVolume[i], sVolume^-2) 
-  } 
-  residual <- (eVolume - Volume) / sVolume # calculate standardised residuals
-}" 
-writeLines(txt, "trees.jags")
-
-model1 <- jags.model("trees.jags", data = as.list(datasets::trees))
-posterior1 <- coda.samples(model1, variable.names = c("bVolume", "bVolumeGirth", "sVolume", "residual"), n.iter = 1000)
-summary(posterior1)
-estimates <- as.data.frame(summary(posterior1)$statistics)
-estimates <- estimates[substr(row.names(estimates), 1, 8) == "residual",]
-trees <- cbind(trees, estimates)
-quartz()
-qplot(x = Volume, y = Mean, data = trees)
-```
-
-the following code 
-
-```{r, tidy=FALSE}
-txt <- "model {
-  bVolume ~ dnorm(0, 5^-2) 
-  bVolumeGirth ~ dnorm(0, 5^-2) 
-  sVolume ~ dunif(0, 10) 
+    eVolume[i] <- alpha + beta * Girth[i] # expected volume
+    Volume[i] ~ dnorm(eVolume[i], sigma^-2) # observed volume drawn from normal
+    } 
+  }",
+derived_code = "data {
   for(i in 1:length(Volume)) { 
-    eVolume[i] <- bVolume + bVolumeGirth * Girth[i]
-    Volume[i] ~ dnorm(eVolume[i], sVolume^-2) 
-  } 
-  residuals <- Volume - eVolume
-}" 
-writeLines(txt, "trees.jags")
+    prediction[i] <- alpha + beta * Girth[i]
+  }
+  residual <- (Volume - prediction) / sigma
+}
+",
+monitor = c("alpha", "beta", "sigma"),
+select = c("Volume", "Girth+"))
+
+atrees3 <- jags_analysis(mtrees3, data = datasets::trees)
+summary(atrees3)
+
+prediction <- predict(atrees3, newdata = "Girth")
+residuals <- residuals(atrees3)
+fitted <- fitted(atrees3)$estimate
 ```
 
-#### Regression with trees dataset
-#### show convergence - thin...
-#### look at residuals
-#### go to dlnorm.... allometric
-#### plot
-#### add confidence intervals
-#### add prediction intervals
+```{r, fig.width=3, fig.height=3}
+gp <- ggplot(data = prediction, aes(x = Girth, y = estimate))
+gp <- gp + geom_point(data = datasets::trees, aes(y = Volume))
+gp <- gp + geom_line()
+gp <- gp + geom_line(aes(y = lower), linetype = "dashed")
+gp <- gp + geom_line(aes(y = upper), linetype = "dashed")
+gp <- gp + scale_y_continuous(name = "Volume")
 
-#### go to jaggernaut
+print(gp)
+
+qplot(fitted$estimate, residuals$estimate) + geom_hline(yintercept = 0) + geom_smooth(se = FALSE)
+```
+
+As discussed in the R course [notes](http://www.poissonconsulting.ca/course/2014/09/12/an-introduction-to-r-course.html) the relationship between Volume and Girth is expected to be [allometric](http://www.nature.com/scitable/knowledge/library/allometry-the-study-of-biological-scaling-13228439) because the cross-sectional area at an given point scales to the square of the girth (circumference).
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("Fit an allometric relationship by log What is the probability that dam operations have increased the frequency of fish stranding?")
+```
+
+Exercise 36 Try fitting an allometric relationship by log transforming Volume and Girth and then using the same basic linear regression model. Does the diagnostic plot suggest an improvement in the model?
+
