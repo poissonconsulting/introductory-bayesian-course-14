@@ -65,22 +65,22 @@ If you haven't already done so, download the the most recent version of the R ba
 
 To make sure you have all the required packages execute
 the following code at the command line
-```{r, message = FALSE}
-
-install.packages("devtools")
-install.packages("dplyr")
-install.packages("ggplot2")
-install.packages("rjags")
-
+```{r, message = FALSE, warning = FALSE}
+#install.packages("devtools", quiet = TRUE)
 library(devtools)
 
-install_github("poissonconsulting/tulip@v0.0.11")
-install_github("poissonconsulting/datalist@v0.4")
-install_github("poissonconsulting/juggler@v0.1.3")
-install_github("poissonconsulting/jaggernaut@v1.8.5")
-
+#install.packages("dplyr", quiet = TRUE)
 library(dplyr)
+
+#install.packages("ggplot2", quiet = TRUE)
 library(ggplot2)
+
+#install.packages("rjags", quiet = TRUE)
+#install_github("poissonconsulting/tulip@v0.0.11")
+#install_github("poissonconsulting/datalist@v0.4")
+#install_github("poissonconsulting/juggler@v0.1.3")
+
+#install_github("poissonconsulting/jaggernaut@v1.8.5")
 library(jaggernaut)
 ```
 
@@ -142,7 +142,7 @@ most research projects.
 Fortunately, JAGS (which stands for Just Another Gibbs Sampler) can take a dataset
 and a model specified in the simple but flexible BUGS language (which stands for Bayesian Analysis Using Gibbs Sampling) and perform iterative sampling for us. 
 
-In order to do this we use the `jaggernaut` package to talk to
+In order to do this we will use the `jaggernaut` package to talk to
 the standalone JAGS program via the `rjags` package.
 
 ## Biased Coin
@@ -162,115 +162,62 @@ mean(y) # calculates mean of vector
 qplot(y, geom = "histogram") # plots histogram of vector
 ```
 
-```{r, echo = FALSE, results = 'asis'}
-exercise("Create a new R project in a folder on your hard drive called `Bayes`")
-exercise("Create a project script called `coin.R` to generate 
-  the above ten throws of a coin with a 75% chance of a tail.")
-```
-
-In order to estimate the underlying probability of throwing a head we need to specify the following model in the BUGS language and save it as an object of class `jags_model`.
+In order to estimate the underlying probability of throwing a head we specify the following model in the BUGS language and save it as an object of class `jags_model`.
 ```{r, tidy=FALSE}
 mcoin1 <- jags_model("model { # start of BUGS model code
   theta ~ dunif(0, 1) # uniform prior distribution between 1 and 0 for theta
   for(i in 1:length(y)) { # for loop over the values 1, 2, ..., length of y
     y[i] ~ dbin(theta, 1) # assumed statistical distribution for observed throws
   } # end of for loop
-} # end of BUGS model code") 
+} # end of BUGS model code
+") 
 ```
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("Plot theta's prior distribution as a histogram. You will likely find the `runif` and `hist` functions useful.")
+exercise("Plot theta's prior distribution as a histogram. You will likely find the `runif` and `qplot` functions useful.")
 ```
 
-Then we call JAGS using jaggernaut to generate 100 samples from 
+Then we call JAGS using `jaggernaut` in `debug` mode to generate 100 samples from 
 $\theta$'s posterior probability distribution.
+```{r, message=FALSE, warning=FALSE, results='hide'}
+acoin1 <- jags_analysis(mcoin1, data = data.frame(y = y), mode = "debug")
+```
+
 ```{r, fig.width=6, fig.height=3}
-mcoin1 <- jags_analysis("coin.jags", data = data.frame(y = y))
-pcoin1 <- coda.samples(mcoin1, variable.names = "theta", n.iter = 100)
-plot(pcoin1)
-summary(pcoin1)
+plot(acoin1)
+coef(acoin1)
 ```
 
-Any questions?
+The model output indicates that the point estimate is `r round(coef(acoin1)[,"estimate"],2)`, the 95% credible interval (CRI) is `r round(coef(acoin1)[,"lower"],2)` to `r round(coef(acoin1)[,"upper"],2)`, the standard deviation is `r round(coef(acoin1)[,"sd"],2)`,
+the percent relative error is `r coef(acoin1)[,"error"]` and the significance is `r coef(acoin1)[,"significance"]`.
 
-```{r, echo = FALSE, results = 'asis'}
-exercise("What is the point estimate for theta?")
-exercise("And the 95% credible interval?")
-```
 
-The same model can be fitted in a frequentist framework using the following R code
-```{r}
-mod <- glm(y ~ 1, data = list(y = y), family = "binomial")
-plogis(coef(mod))
-plogis(confint(mod))
-```
-
-The following BUGS model code includes a derived parameter `range` which 
-test the probability that theta lies between 0.5 and 0.7.
+If previous studies indicated that the coin was biased towards tails then we could adjust the prior distribution as follows.
 ```{r, tidy=FALSE}
-txt <- "model { # start of BUGS model code
-  theta ~ dunif(0, 1) # uniform prior distribution between 1 and 0 for theta
-  for(i in 1:length(y)) { # for loop over the values 1, 2, ..., length of y
-    y[i] ~ dbin(theta, 1) # assumed statistical distribution for observed throws
-  } # end of for loop
-  range <- theta >= 0.5 && theta <= 0.7
-} # end of BUGS model code" 
-writeLines(txt, "coin.jags")
+mcoin2 <- jags_model("model { # start of BUGS model code
+  theta ~ dunif(0.5, 1) # new prior distribution
+  for(i in 1:length(y)) { 
+    y[i] ~ dbin(theta, 1) 
+  } 
+} ")
 ```
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("What is the probability that the coin can be expected to produce a tail between 50 and 70% of the time?")
-exercise("How would you answer the above question in the frequentist framework?")
-exercise("What is the probability that the coin can be expected to produce a tail more than 50% of the time?")
-```
-
-If previous studies indicated that the coin was definitely biased towards tails then we could adjust the prior distribution as follows.
-```{r, tidy=FALSE}
-txt <- "model { # start of BUGS model code
-  theta ~ dunif(0.5, 1) # uniform prior distribution between 1 and 0 for theta
-  for(i in 1:length(y)) { # for loop over the values 1, 2, ..., length of y
-    y[i] ~ dbin(theta, 1) # assumed statistical distribution for observed throws
-  } # end of for loop
-} # end of BUGS model code" 
-writeLines(txt, "coin.jags")
-```
-
-```{r, echo = FALSE, results = 'asis'}
-exercise("What does the new prior distribution look like?")
-exercise("How does it affect the posterior distribution?")
-```
-
-## Fish Stranding Events
-
-Imagine a dam operator comes to you with the following data regarding 
-fish stranding events. Historically fish stranding occurred 15% of the time.
-```{r}
-y <- c(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 
-0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 
-0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 
-0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 
-0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0)
-```
-
-```{r, echo = FALSE, results = 'asis'}
-exercise("What is the probability that dam operations have increased the frequency of fish stranding?")
-exercise("How does the inter-run stability of your answer depend on the number of iterations (`n.iter` in `coda.samples` specifies the number of iterations)?")
+exercise("How does the new prior affect the posterior distribution?")
 ```
 
 ### Recap
 
-- JAGS is a stand-alone program
-- A package such as `rjags` is required to allow R to talk to JAGS
-- `rjags` requires the data in the form of a list
 - The BUGS model code defines the posterior distributions and relationships between
-parameters
-- Based on the data and model definition, JAGS uses MCMC algorithms to iteratively sample from the posterior distributions of the monitored parameters
-- The posterior distributions can be summarised in terms of a point estimate and 95% credible intervals
+parameters.
+- Based on the data and model definition, JAGS uses MCMC algorithms to iteratively sample from the posterior distributions of the monitored parameters.
+- The posterior distributions can be summarised in terms of a point estimate and 95% credible intervals.
+
 
 ## Black Cherry Trees
 
 The `trees` data set in the dataset package provides information on
-girth, height and volume of 31 black cherry trees.
+the girth and volume of 31 black cherry trees.
 
 ```{r, fig.width=3, fig.height=3}
 qplot(x = Girth, y = Volume, data = trees)
@@ -279,36 +226,16 @@ qplot(x = Girth, y = Volume, data = trees)
 Algebraically, the linear regression of `Volume` against `Girth` can be defined as follows
 
 $$Volume_{i}  = \alpha + \beta * Girth_{i} + \epsilon_{i}$$
+  
+  where $\alpha$ is the intercept and $\beta$ is the slope and the error terms ($\epsilon_{i}$) are  drawn from a normal distribution with an standard deviation of $\sigma$.
 
-where $\alpha$ is the intercept and $\beta$ is the slope and the error terms ($\epsilon_{i}$) are  drawn from a normal distribution with an standard deviation of $\sigma$.
-
-In the frequentist framework it can be defined and fitted as follows
-```{r, tidy=FALSE}
-mod <- lm(Volume ~ Girth, data = trees)
-summary(mod)
-```
-
-and plotted using
-
-```{r, fig.width=3, fig.height=3}
-newdata <- datalist::new_data(trees, "Girth")
-pred <- predict(mod, newdata, interval = "conf")
-newdata <- cbind(newdata, data.frame(pred))
-
-gp <- ggplot(data = newdata, aes(x = Girth, y = fit))
-gp <- gp + geom_point(data = trees, aes(y = Volume))
-gp <- gp + geom_line()
-gp <- gp + geom_line(aes(y = lwr), linetype = "dashed")
-gp <- gp + geom_line(aes(y = upr), linetype = "dashed")
-gp <- gp + scale_y_continuous(name = "Volume")
-
-print(gp)
-```
 
 The model can be defined as follows in the BUGS language where
-`<-` indicates a *deterministic* as opposed to *stochastic* node (which is indicated by `~`).
+`<-` indicates a *deterministic* as 
+opposed to *stochastic* node (which is indicated by `~`).
+
 ```{r, tidy=FALSE}
-txt <- "model {
+mtrees1 <- jags_model("model {
   alpha ~ dnorm(0, 50^-2) # normal prior on intercept
   beta ~ dnorm(0, 50^-2) # normal prior on slope
   sigma ~ dunif(0, 50) # positive uniform prior residual variation
@@ -317,133 +244,96 @@ txt <- "model {
     eVolume[i] <- alpha + beta * Girth[i] # expected volume
     Volume[i] ~ dnorm(eVolume[i], sigma^-2) # observed volume drawn from normal
   } 
-}" 
-writeLines(txt, "trees.jags")
+}")
 ```
 
 The standard deviations of the normal distributions are raised to the
 power of `-2` because (for historical reasons) Bayesians quantify variation 
 in terms of the *precision* ($\tau$) as opposed to the variance ($\sigma^2$) or standard deviation ($\sigma$) where $\tau = 1/\sigma^2$.
 
-```{r, echo = FALSE, results = 'asis'}
-exercise("What do you notice about the prior distribution used for `sigma` versus the other two parameters? Why do you think this is?")
+The resultant trace plots and coefficients are as follows
+```{r, message=FALSE, warning=FALSE, results='hide'}
+atrees1 <- jags_analysis(mtrees1, data = datasets::trees, mode = "debug")
 ```
 
-As before the posteriors can be sampled using the `rjags` function `coda.samples`.
-```{r, warning = FALSE, message = FALSE, fig.width=6, fig.height=6}
-mtrees1 <- jags.model("trees.jags", data = as.list(datasets::trees), quiet = TRUE)
-ptrees1 <- coda.samples(mtrees1, variable.names = c("alpha", "beta", "sigma"), n.iter = 1000)
-plot(ptrees1)
+```{r, fig.width = 6, fig.height = 6}
+plot(atrees1)
+coef(atrees1)
 ```
-
-Notice how the iterations begin at 1000. This is because the model requires 
-a thousand iterations to complete the *adaptive phase*. As it states in the `rjags` help files 
-
-> During the adaptive phase the samplers adapt their behaviour to maximize their efficiency... The sequence of samples generated during this adaptive phase is not a Markov chain, and therefore may not be used for posterior inference on the model.
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("What do you notice about the trace plots for `alpha` and `beta`?And why do you think this is the case?")
+exercise("What do the trace plots suggest to you?")
 ```
 
-Any autocorrelation in the traceplots can be quantified using the
-`coda` function `autocorr.diag`
-
+The $\hat{R}$ metric uses the within-chain and between-chain variances
+to quantify their similarities with a value of `1.0` indicative of
+convergence. For reports an $\hat{R} < 1.1$ is considered sufficient
+while papers typically demand an $\hat{R} < 1.05$.
 ```{r}
-autocorr.diag(ptrees1)
+rhat(atrees1, parm = "fixed", combine = FALSE)
 ```
 
-Researchers sometimes reduce the autocorrelation
-by thinning the chains. However as argued and demonstrated by xx, although high levels
-of autocorrelation may require longer chains thinning per se is never justified (although longer chains may require thinning to ensure they
-remain manageable).
+Lack of convergence suggests that the MCMC samples may not be representative 
+of the posterior distributions. To produce more representative samples,
+the user can attempt to reparameterise the model to increase chain mixing
+and/or increase the number of iterations.
 
-It is worth noting that high levels of autocorrelation is often caused by cross correlations between parameters
-```{r}
-crosscorr(ptrees1)
-```
-which can often be eliminated by reparameterising the model. 
+### Chain Mixing
 
-Below we attempt to remove the cross correlation between
-the intercept (`alpha`) and the slope (`beta`)
-by *centering* `Girth`
-```{r, warning = FALSE, message = FALSE}
-trees <- dplyr::mutate(datasets::trees, Girth = Girth - mean(Girth))
-mtrees2 <- jags.model("trees.jags", data = as.list(trees), quiet = TRUE)
-ptrees2 <- coda.samples(mtrees2, variable.names = c("alpha", "beta", "sigma"), n.iter = 1000)
-```
+Poor chain mixing/sampling efficiency is often caused by cross correlations
+between parameters. Examination of the residual plots indicates
+that `alpha` and `beta` are cross correlated. The following code uses
+the `select` argument to specify the required variables in the input
+data with the `+` suffix on `Girth` indicating that it is to be
+centered (`x - mean(x)`) before being passed to JAGS. 
 
-```{r, echo = FALSE, results = 'asis'}
-exercise("Does centering `Girth` eliminate the cross correlation?")
-exercise("What is the effect of centering `Girth` on the
-         traceplots and autocorrelations?")
-```
-
-Many researchers estimate fitted values, predictions and residuals by adding extra monitored nodes to their model code. The disadvantages of
-this approach are that: the model code becomes more complicated; 
-the MCMC sampling takes longer and the table of parameter estimates
-becomes unwiedly. Plus, if the variables have been transformed 
-back-transformation of the values is also required.
-
-To circumvent these problems I wrote the R package `jaggernaut`
-which acts as a wrapper on `rjags`. The following code implements
-the previous model in jaggernaut and allows the subsequent generation 
-of predictions, fitted values and residuals.
-
-```{r, message = FALSE, warning=FALSE}
-mtrees3 <- jags_model("model {
+```{r, tidy=FALSE}
+mtrees2 <- jags_model("model {
   alpha ~ dnorm(0, 50^-2) # normal prior on intercept
   beta ~ dnorm(0, 50^-2) # normal prior on slope
   sigma ~ dunif(0, 50) # positive uniform prior residual variation
-  
+
   for(i in 1:length(Volume)) { 
     eVolume[i] <- alpha + beta * Girth[i] # expected volume
     Volume[i] ~ dnorm(eVolume[i], sigma^-2) # observed volume drawn from normal
-    } 
-  }",
-derived_code = "data {
-  for(i in 1:length(Volume)) { 
-    prediction[i] <- alpha + beta * Girth[i]
-  }
-  residual <- (Volume - prediction) / sigma
-}
-",
-monitor = c("alpha", "beta", "sigma"),
+  } 
+}",
 select = c("Volume", "Girth+"))
 ```
 
-As their names imply the `monitor` and `select` arguments
-specify the parameters to monitor and the variables to select
-from the input dataset. The `+` after `Girth` in the `select`
-argument indicates that Girth is to be back-transformed by 
-subtracting its mean
-
-```{r, message = FALSE, warning=FALSE}
-atrees3 <- jags_analysis(mtrees3, data = datasets::trees)
-summary(atrees3)
-
-prediction <- predict(atrees3, newdata = "Girth")
-residuals <- residuals(atrees3)
-fitted <- fitted(atrees3)$estimate
-```
-
-```{r, fig.width=3, fig.height=3}
-gp <- ggplot(data = prediction, aes(x = Girth, y = estimate))
-gp <- gp + geom_point(data = datasets::trees, aes(y = Volume))
-gp <- gp + geom_line()
-gp <- gp + geom_line(aes(y = lower), linetype = "dashed")
-gp <- gp + geom_line(aes(y = upper), linetype = "dashed")
-gp <- gp + scale_y_continuous(name = "Volume")
-
-print(gp)
-
-qplot(fitted$estimate, residuals$estimate) + geom_hline(yintercept = 0) + geom_smooth(se = FALSE)
-```
-
-As discussed in the R course [notes](http://www.poissonconsulting.ca/course/2014/09/12/an-introduction-to-r-course.html) the relationship between Volume and Girth is expected to be [allometric](http://www.nature.com/scitable/knowledge/library/allometry-the-study-of-biological-scaling-13228439) because the cross-sectional area at an given point scales to the square of the girth (circumference).
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("Fit an allometric relationship by log What is the probability that dam operations have increased the frequency of fish stranding?")
+exercise("How does centering `Girth` change the trace plots and rhat values?")
 ```
 
-Exercise 36 Try fitting an allometric relationship by log transforming Volume and Girth and then using the same basic linear regression model. Does the diagnostic plot suggest an improvement in the model?
+### Iterations
 
+Convergence can be achieved by increasing the number of
+iterations and discarding the initial burnin period.
+This is easy to achieve using jaggernaut, just
+switch to `report` mode and set `niters = 10^4`
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+opts_jagr(mode = "report")
+atrees3 <- jags_analysis(mtrees1, data = datasets::trees, niters = 10^4)
+```
+
+With these settings `jaggernaut` 
+
+- conducts adaptive phase to maximize sampling efficiency
+- generates three chains of 10^4 iterations in length.
+- discards the first half of each chain as burnin
+- thins each chain so that the total number of MCMC samples
+for each monitored parameter is as close as possible to but not less than 10^3
+- tests for convergence under the criterion that $\hat{R} < 1.1$
+- if convergence has not been achieved it discards the current
+samples as burnin and doubles the number of iterations before
+thinning again
+- it repeats this up to three times or until convergence is achieved
+
+For more information on the possible modes and options type `?opts_jagr`.
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("How does switching to report mode with 10^3 iterations
+         affect the trace plots with and without centering Girth?")
+```
