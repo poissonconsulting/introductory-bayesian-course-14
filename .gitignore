@@ -6,3 +6,5 @@
 *.jags
 packrat/lib*/
 packrat/src/
+*.html
+*.md
