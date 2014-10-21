@@ -481,12 +481,9 @@ exercise("Plot the percent change in `len` for your preferred
          ToothGrowth model relative to 1 mg of OJ")
 ```
 
-### Hierarchical Models
+### House Martins and Hierarchical Models
 
-The population of house martins in a small Swiss village has been surveyed by Reto Freuler since 1990
-
-The `jaggernaut` package includes data sets from kery and Schaub's  excellent book Population Analysis using WinBUGS. Here we consider 
-the annual surveys of house martins in a small swiss village from 1990 to 2009.
+Consider the annual surveys of house martins in a small Swiss village from 1990 to 2009 from Kery and Schaub (xxxx).
 
 ```{r, fig.width = 4, fig.height = 3}
 
@@ -494,34 +491,74 @@ data(hm)
 qplot(year, hm, data = hm) + geom_line() + expand_limits(y = 0)
 ```
 
-The following BUGS code uses a state-space population growth 
-model to estimate the probability that the population size in 2015 would be lower than in 2009. 
+Algebraically a state-space population growth 
+model to estimate the underlying population abundance $N_{t}$ 
+and growth rate $r_{t}$ at time $t$ can be written 
 
-Algebraically the state space model can be written 
+$$log(N_{t+1}) = log(N_{t}) + r_{t}$$
 
-$log(N_{t+1}) = log(N_{t}) + r_{t}$ where $r_{t}$ is the the stochastic population growth rate and$r_{t} \sim N(\bar{r}, \sigma_{r})$
+$$r_{t} \sim N(\bar{r}, \sigma_{r})$$
+
+$$log(Count_{t}) = log(N_{t}) + \epsilon_{t}$$
+
+$$\epsilon_{t} \sim N(0, \sigma_{\epsilon})$$
+
+In the BUGS language the model can be written as follows. 
 
 ```{r, tidy=FALSE}
 mhm1 <- jags_model("model {
                    
-  logN.est[1] ~ dnorm(5.6, 10^-2)
-  mean.r ~ dnorm(1, 10^-2)
-  sigma.proc ~ dunif(0, 1)
-  sigma.obs ~ dunif(0, 1)
+  bar_r ~ dnorm(1, 10^-2)
+  sigma_r ~ dunif(0, 1)
+  sigma_e ~ dunif(0, 1)
   
+  N[1] ~ dlnorm(5.6, 10^-2)
   for (i in 1:length(year)) {
-    r[i] ~ dnorm(mean.r, sigma.proc^-2)
-    logN.est[i+1] <- logN.est[i] + r[i]
-    hm[i] ~ dlnorm(logN.est[i], sigma.obs^-2)
+    log(N[i+1]) <- log(N[i]) + r[i]
+    r[i] ~ dnorm(bar_r, sigma_r^-2)
+    hm[i] ~ dlnorm(log(N[i]), sigma_e^-2)
   }
 }",
-derived_code = "model{
+ derived_code = "data{
   for (i in 1:length(year)) {
-    log(prediction[i]) <- logN.est[year[i]]
+    log(prediction[i]) <- log(N[year[i]])
   }
 }",
-random_effects = list(r = "year", logN.est = "year"),
-select = c("hm","year")
+random_effects = list(r = "year", N = "year"),
 )
-
 ```
+
+The specification of `r` and `N` as random effect means
+that by default they are excluded from the trace plots 
+and table of coefficients.
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+hm$year <- factor(hm$year)
+ahm1 <- jags_analysis(mhm1, data = hm, niters = 10^4)
+```
+
+```{r, fig.width = 6, fig.height = 6}
+plot(ahm1)
+coef(ahm1)
+```
+
+```{r, fig.width = 3, fig.height = 3}
+prediction <- predict(ahm1, newdata = "year")
+
+gp <- ggplot(data = prediction, aes(x = as.integer(as.character(year)), y = estimate))
+gp <- gp + geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 1/4)
+gp <- gp + geom_line(data = dataset(ahm1), aes(y = hm), alpha = 1/3)
+gp <- gp + geom_line()
+gp <- gp + scale_x_continuous(name = "Year")
+gp <- gp + scale_y_continuous(name = "Population Size")
+gp <- gp + expand_limits(y = 0)
+
+print(gp)
+```
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("What is the probability that the population in 2015 will be
+         less than that in 2009? Note you can produce the projections
+         by simply appending six years of missing counts to the dataset")
+```
+
