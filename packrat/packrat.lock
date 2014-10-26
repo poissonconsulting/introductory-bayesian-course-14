@@ -140,8 +140,8 @@ Hash: 0cf4a2b54c02b35dec7e74a8ebed12a0
 
 Package: highr
 Source: CRAN
-Version: 0.3
-Hash: 7c85a9b7d07a75e2d8ca74f9467fee21
+Version: 0.4
+Hash: 8c77cca8556e1501621b4a5ccb7999bd
 
 Package: htmltools
 Source: CRAN
@@ -179,8 +179,8 @@ GithubSha1: ab288dbab254e10c28aaa5ad381e79b9d26a521b
 
 Package: jsonlite
 Source: CRAN
-Version: 0.9.12
-Hash: 08b7b0965550f20290b35a70f22f2215
+Version: 0.9.13
+Hash: dd2cfbfb6cce930fef0be435a7093e8a
 
 Package: juggler
 Source: github
