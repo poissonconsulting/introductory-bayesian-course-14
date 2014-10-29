@@ -2,6 +2,7 @@
 title: "Introductory Bayesian Course"
 author: "Dr. Joseph L. Thorley"
 date: "October 20^th^, 2014"
+bibliography: bibliography.bib
 output:
   pdf_document:
     number_sections: yes
@@ -63,8 +64,7 @@ The notes, which are released under a [CC BY 4.0](http://creativecommons.org/lic
 
 If you haven't already done so, download the the most recent version of the R base distribution binary for your platform from <http://cran.r-project.org/> and install using the default options. Next download and install RStudio from <http://www.rstudio.com/products/rstudio/download/> using the default options. Then, download JAGS from <http://sourceforge.net/projects/mcmc-jags/files/JAGS/> and install with the default options. 
 
-To make sure you have all the required packages installed on your hard drive execute
-the following code at the command line
+To make sure you have all the required packages installed on your hard drive execute the following code at the command line
 
 ```
 install.packages("devtools", quiet = TRUE)
@@ -183,6 +183,8 @@ Step 3
 
 :   *Iterate* step 2 thousands (or millions) of times to obtain a sample from $p(\theta|y)$.
 
+Typically this is performed for two or more independent chains.
+
 ## JAGS and BUGS
 
 Programming an efficient MCMC algorithm
@@ -218,7 +220,10 @@ coef(analysis1)
 The model output indicates that the point estimate (in this case the
 mean of the samples) is `r round(coef(analysis1)[,"estimate"],2)`
 and the 95% credible interval (in this case the 2.25th and 97.75th 
-percentiles) is `r round(coef(analysis1)[,"lower"],2)` to `r round(coef(analysis1)[,"upper"],2)`.
+percentiles) is `r round(coef(analysis1)[,"lower"],2)` to `r round(coef(analysis1)[,"upper"],2)`. The model output also indicates that the 
+posterior probability distribution
+has a standard deviation (sd) of `r round(coef(analysis1)[,"sd"],2)`.
+The significance and error values are discussed later.
 
 ```{r, echo = FALSE, results = 'asis'}
 exercise("Previous studies indicate that the coin was definitely biased
@@ -263,7 +268,20 @@ The standard deviations of the normal distributions are raised to the
 power of `-2` because (for historical reasons) Bayesians quantify variation 
 in terms of the *precision* ($\tau$) as opposed to the variance ($\sigma^2$) or standard deviation ($\sigma$) where $\tau = 1/\sigma^2$.
 
-The resultant trace plots and coefficients are as follows
+### Parallel Chains
+
+To reduce the analysis time, 
+MCMC chains can be run on parallel processes. In jaggernaut this
+achieved using the `registerDoParallel` function
+and by setting the parallel option to be `TRUE`.
+This only needs to be done once at the start of a session.
+```{r}
+registerDoParallel()
+opts_jagr("parallel" = TRUE)
+```
+
+The resultant trace plots and coefficients for the `trees` analysis
+are as follows.
 ```{r, message=FALSE, warning=FALSE, results='hide'}
 data(trees)
 analysis1 <- jags_analysis(model1, data = trees)
@@ -272,6 +290,53 @@ analysis1 <- jags_analysis(model1, data = trees)
 ```{r, fig.width = 6, fig.height = 6}
 plot(analysis1)
 coef(analysis1)
+```
+
+```{r, echo=FALSE, results='hide'}
+auto_corr(analysis1)
+cross_corr(analysis1)
+```
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("What do you notice about the trace plots? The output of 
+         `auto_corr(analysis1)` and `cross_cor(analysis1)` 
+         might give you some clues.")
+```
+
+### Chain Mixing
+
+Cross-correlations between parameters, which cause poor chain mixing (i.e., high auto-correlation), can sometimes be eliminated or reduced by reparameterising the model. In the current model, `Girth` can be centered, i.e., `Girth - mean(Girth)`, using the following code `select_data(model1) <- c("Volume", "Girth+")`.
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("What is the effect of centring `Girth` on the trace plots?")
+```
+
+Note if you ever want to examine the actual data being passed
+to JAGS set the modify_data term of your `jags_model` 
+object to be a simple function that prints and returns its one argument 
+```{r, tidy=FALSE}
+modify_data(model1) <- function (data) { print(data); data }
+```
+
+#### glm Module
+
+In the case of generalized linear mixed models the JAGS 
+`glm` module uses block updating to free the user of the need to centre predictor variables. It currently only works on parameters that have a normal prior distribution. The `glm` module can be loaded using the following code.
+The `list.models()` function lists the currently loaded modules.
+
+```{r, results = 'hide', message=FALSE}
+library(rjags)
+list.modules()
+load.module("glm")
+list.modules()
+unload.module("glm")
+list.modules()
+```
+
+For further information see the [JAGS User Manual](http://www.poissonconsulting.ca/jags/user-manual/v3-4-0.pdf).
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("What is the effect of loading the `glm` module (without manually centring `Girth`) on the trace plots?")
 ```
 
 ### Predictions and Residuals
@@ -316,6 +381,8 @@ fitted$residual <- residuals(analysis1, derived_code = dcode)$estimate
 qplot(estimate, residual, data = fitted) + geom_hline(yintercept = 0) + geom_smooth(se = FALSE)
 ```
 
+#### Allometry
+
 As discussed in the R course [notes](http://www.poissonconsulting.ca/course/2014/09/12/an-introduction-to-r-course.html) the relationship between Volume and Girth is expected to be [allometric](http://www.nature.com/scitable/knowledge/library/allometry-the-study-of-biological-scaling-13228439) because the cross-sectional area at an given point scales to the square of the girth (circumference).
 
 Expressed as an allometric relationship the model becomes
@@ -323,6 +390,41 @@ Expressed as an allometric relationship the model becomes
 $$Volume_{i}  = \alpha * Girth_{i}^\beta * \epsilon_{i}$$
 
 which can be reparameterised as a linear regression by log transforming
+`Volume` and `Girth`.
 
 $$log(Volume_{i})  = \alpha + \beta * log(Girth_{i}) + \epsilon_{i}$$
+
+Variables can be log transformed in the model code or in the select_data
+argument, i.e., `select_data(model1) <- c("log(Volume)", "log(Girth)")`.
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("Fit the above allometric model to the `trees` data set.
+         Is the model fit improved?")
+exercise("Does adding log transformed Height improve the model?")
+```
+
+### Significance Values
+
+The significance value in the jaggernaut table of coefficients
+is twice the probability that the posterior distribution spans
+zero. As such it represents the Bayesian equivalent of a 
+frequentist two-sided p-value [@greenland_living_2013].
+By definition parameters that represent standard deviations, which must be greater than
+zero, will have a significance value of 0.
+
+### Error Values
+
+The error value in the table of coefficients is
+the *percent relative error*,  which is half the credible interval
+as a percent of the point estimate, i.e.,
+
+$$error = (upper - lower) * 0.5 / estimate * 100$$.
+
+Standard deviations with a uniform prior distribution that
+is not updated by the data have error values of 0.95.
+As a general rule, I question the informativeness
+of parameters representing  standard deviations 
+which have an error value $\geq 0.8$.
+
+# References
 
