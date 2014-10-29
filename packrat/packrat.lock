@@ -168,14 +168,14 @@ Requires: iterators
 
 Package: jaggernaut
 Source: github
-Version: 1.8.5
-Hash: ab288dbab254e10c28aaa5ad381e79b9d26a521b
+Version: 2.0.0
+Hash: 55c105574bffa5b5961ab01398ee71387e10d765
 Requires: Rcpp, abind, assertthat, coda, datalist, doParallel, ggplot2,
     itertools, juggler, plyr, reshape2, rjags
 GithubRepo: jaggernaut
 GithubUsername: poissonconsulting
-GithubRef: v1.8.5
-GithubSha1: ab288dbab254e10c28aaa5ad381e79b9d26a521b
+GithubRef: v2.0.0
+GithubSha1: 55c105574bffa5b5961ab01398ee71387e10d765
 
 Package: jsonlite
 Source: CRAN
