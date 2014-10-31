@@ -78,7 +78,7 @@ install.packages("scales", quiet = TRUE)
 install_github("poissonconsulting/tulip@v0.0.11")
 install_github("poissonconsulting/datalist@v0.4")
 install_github("poissonconsulting/juggler@v0.1.3")
-install_github("poissonconsulting/jaggernaut@v2.0.0")
+install_github("poissonconsulting/jaggernaut@v2.1.0")
 ```
 
 Then start any scripts with 
@@ -339,11 +339,12 @@ For further information see the [JAGS User Manual](http://www.poissonconsulting.
 exercise("What is the effect of loading the `glm` module (without manually centring `Girth`) on the trace plots?")
 ```
 
-### Predictions and Residuals
+### Derived Parameters
 
 Many researchers estimate fitted values, 
-predictions and residuals by monitoring additional nodes in their model code. The disadvantages of
-this approach are that: 
+predictions and residuals and perform posterior preditive checks by monitoring additional nodes in their model code. 
+
+The disadvantages of this approach are that: 
 
 - the model code becomes more complicated. 
 - the MCMC sampling takes longer.
@@ -358,10 +359,23 @@ in a separate chunk of BUGS code as demonstrated below.
 dcode <- "data {
   for(i in 1:length(Volume)) { 
     prediction[i] <- alpha + beta * Girth[i]
+
+    simulated[i] ~ dnorm(prediction[i], sigma^-2)
+
+    D_observed[i] <- log(dnorm(Volume[i], prediction[i], sigma^-2))
+    D_simulated[i] <- log(dnorm(simulated[i], prediction[i], sigma^-2))
   }
   residual <- (Volume - prediction) / sigma
+  discrepancy <- sum(D_observed) - sum(D_simulated)
+  
 }"
+```
 
+#### Predictions
+
+xxx
+
+```{r, tidy=FALSE, message=FALSE, warning=FALSE, results='hide'}
 prediction <- predict(analysis1, newdata = "Girth", derived_code = dcode)
 ```
 
@@ -375,13 +389,29 @@ gp <- gp + scale_y_continuous(name = "Volume")
 
 print(gp)
 
+```
+
+#### Residuals
+
+xxx
+
+```{r, fig.width=3, fig.height=3, message=FALSE, warning=FALSE}
+
 fitted <- fitted(analysis1, derived_code = dcode)
 fitted$residual <- residuals(analysis1, derived_code = dcode)$estimate
 
 qplot(estimate, residual, data = fitted) + geom_hline(yintercept = 0) + geom_smooth(se = FALSE)
 ```
 
-#### Allometry
+#### Posterior Predictive Checks
+
+xxx
+
+```{r, fig.width=3, fig.height=3, message=FALSE, warning=FALSE}
+predictive_check(analysis1, derived_code = dcode)
+```
+
+### Allometry
 
 As discussed in the R course [notes](http://www.poissonconsulting.ca/course/2014/09/12/an-introduction-to-r-course.html) the relationship between Volume and Girth is expected to be [allometric](http://www.nature.com/scitable/knowledge/library/allometry-the-study-of-biological-scaling-13228439) because the cross-sectional area at an given point scales to the square of the girth (circumference).
 
@@ -400,7 +430,7 @@ argument, i.e., `select_data(model1) <- c("log(Volume)", "log(Girth)")`.
 ```{r, echo = FALSE, results = 'asis'}
 exercise("Fit the above allometric model to the `trees` data set.
          Is the model fit improved?")
-exercise("Does adding log transformed Height improve the model?")
+exercise("Is there any support for adding log transformed Height to the model?")
 ```
 
 ### Significance Values
