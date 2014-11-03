@@ -78,7 +78,7 @@ install.packages("scales", quiet = TRUE)
 install_github("poissonconsulting/tulip@v0.0.11")
 install_github("poissonconsulting/datalist@v0.4")
 install_github("poissonconsulting/juggler@v0.1.3")
-install_github("poissonconsulting/jaggernaut@v2.1.0")
+install_github("poissonconsulting/jaggernaut@v2.1.1")
 ```
 
 Then start any scripts with 

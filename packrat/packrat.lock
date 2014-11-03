@@ -1,6 +1,6 @@
 PackratFormat: 1.4
 PackratVersion: 0.4.1.3
-RVersion: 3.1.1
+RVersion: 3.1.2
 Repos: CRAN=http://cran.rstudio.com
 
 Package: BH
@@ -20,8 +20,8 @@ Hash: 2a7641e407ce2a484d5a587a4e30a9aa
 
 Package: R6
 Source: CRAN
-Version: 2.0
-Hash: a7fd0cf10401cde9177f1a685f72d15a
+Version: 2.0.1
+Hash: 9a3ac4e5fd8059af0fc5156bcb019bbc
 
 Package: RColorBrewer
 Source: CRAN
@@ -168,14 +168,14 @@ Requires: iterators
 
 Package: jaggernaut
 Source: github
-Version: 2.1.0
-Hash: 970c751418316ed21f4686f558aa655afc89c5b1
+Version: 2.1.1
+Hash: 77957b0d4192ee1978d13cd20b9a37c0dcbe1965
 Requires: Rcpp, abind, assertthat, coda, datalist, doParallel,
     itertools, juggler, plyr, rjags
 GithubRepo: jaggernaut
 GithubUsername: poissonconsulting
-GithubRef: v2.1.0
-GithubSha1: 970c751418316ed21f4686f558aa655afc89c5b1
+GithubRef: v2.1.1
+GithubSha1: 77957b0d4192ee1978d13cd20b9a37c0dcbe1965
 
 Package: jsonlite
 Source: CRAN
@@ -275,15 +275,19 @@ Requires: Rcpp, plyr, stringr
 
 Package: rjags
 Source: CRAN
-Version: 3-13
-Hash: eacdd83520d433e4745affdadc2a9798
+Version: 3-14
+Hash: 984445b35a2ba1fca442d2ba211d895a
 Requires: coda
 
 Package: rmarkdown
-Source: CRAN
-Version: 0.3.3
-Hash: fe7b370d7022b58c2b71469681c0431f
+Source: github
+Version: 0.3.10
+Hash: b96214b9ac86b437067a0aa21442203f52face83
 Requires: caTools, htmltools, knitr, yaml
+GithubRepo: rmarkdown
+GithubUsername: rstudio
+GithubRef: v0.98.1000
+GithubSha1: b96214b9ac86b437067a0aa21442203f52face83
 
 Package: rstudioapi
 Source: CRAN
