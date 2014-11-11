@@ -101,7 +101,7 @@ gp <- gp + scale_y_continuous(name = "Pairs")
 
 print(gp)
 
-exercise("Fit a second-order polynomial on `Year`. How does it alter the model?")
+exercise("Fit a second-order polynomial on `Year`. Does it improve the model?")
 
 model4 <- jags_model("model {
   alpha ~ dnorm(0, 100^-2)
@@ -134,7 +134,7 @@ gp <- gp + scale_y_continuous(name = "Pairs")
 
 print(gp)
 
-exercise("Fit a third-order polynomial (`beta3 * Year[i]^3`). How does it alter the model?")
+exercise("Fit a third-order polynomial (`beta3 * Year[i]^3`). Does it improve the model?")
 
 model5 <- jags_model("model {
   alpha ~ dnorm(0, 100^-2)

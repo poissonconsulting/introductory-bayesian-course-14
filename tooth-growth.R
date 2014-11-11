@@ -137,7 +137,7 @@ gp <- gp + scale_y_continuous(name = "len")
 
 print(gp)
 
-prediction <- predict(analysis1, newdata = c("supp", "dose"), base = data.frame(supp = "VC", dose = 0.5))
+prediction <- predict(analysis1, newdata = c("supp", "dose"), base = data.frame(supp = "OJ", dose = 1.0))
 
 gp <- ggplot(data = prediction, aes(x = dose, y = estimate, color = supp, shape = supp))
 gp <- gp + geom_line()
@@ -147,5 +147,23 @@ gp <- gp + scale_y_continuous(name = "Effect on len (%)", labels = percent)
 
 print(gp)
 
-message("Plot the percent change in `len` for your preferred
-         ToothGrowth model relative to 1 mg of OJ")
+message("Plot the percent change in `len` for all four models relative to 0.5 mg of Vitamin C")
+
+prediction <- data.frame()
+model_ids <- model_id(analyses, reference = TRUE)
+for(model_id in model_ids) {
+  pred <- predict(analyses, newdata = c("supp", "dose"), 
+                  base = data.frame(supp = "VC", dose = 0.5), model_id = model_id)  
+  pred$ModelID <- factor(model_id, levels = model_ids)
+  prediction <- rbind(prediction, pred)
+}
+
+gp <- ggplot(data = prediction, aes(x = dose, y = estimate, color = supp, shape = supp))
+gp <- gp + facet_wrap(~ModelID)
+gp <- gp + geom_line()
+gp <- gp + geom_line(aes(y = lower), linetype = "dashed")
+gp <- gp + geom_line(aes(y = upper), linetype = "dashed")
+gp <- gp + scale_y_continuous(name = "Effect on len (%)", labels = percent)
+
+print(gp)
+
