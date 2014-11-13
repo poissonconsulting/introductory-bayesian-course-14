@@ -1,7 +1,7 @@
 ---
 title: "Introductory Bayesian Course"
 author: "Dr. Joseph L. Thorley"
-date: "October 20^th^, 2014"
+date: "November 13^th^, 2014"
 output:
   pdf_document:
     number_sections: yes
@@ -59,7 +59,7 @@ in the Introductory R Course notes at <http://www.poissonconsulting.ca/course/20
 ## Licence
 
 The notes, which are released under a [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/deed.en_US) license, are a draft of the material to be presented at the [Introductory Bayesian Course](http://www.poissonconsulting.ca/courses/2014/04/02/bayesian-course.html) in Kelowna on November 20^th^-21^st^, 2014. They were written by [Dr. Joseph Thorley R.P.Bio.](http://www.poissonconsulting.ca/people/joe-thorley.html). The Rmd file to generate these notes is available
-on [Github]<https://github.com/poissonconsulting/introductory-bayesian-course-14> together with
+on [Github](https://github.com/poissonconsulting/introductory-bayesian-course-14) together with
 R/BUGS code to answer to the exercises.
 
 ## Installation
@@ -148,7 +148,7 @@ $$y \sim dbin(\theta, n)$$
 
 where $\theta$ is the probability of throwing a head.
 
-### Maximum Likelihood
+## Maximum Likelihood
 
 The likelihood for the binomial model is given by the following equation
 
@@ -185,7 +185,7 @@ which gives a point estimate of 0.3 and lower and upper
 95% confidence intervals of `r round(0.3 - 1.96 * (1/sqrt(10/0.21)),2)`
 and `r round(0.3 + 1.96 * (1/sqrt(10/0.21)),2)` respectively.
 
-### Posterior Probability
+## Posterior Probability
 
 The posterior probability on the other hand 
 is given by Bayes rule which states that
@@ -208,7 +208,7 @@ As it is generally not possible to calculate the
 posterior probability, the  posterior probability distribution is sampled 
 using Markov Chain Monte Carlo (MCMC) algorithms such as Gibbs Sampling.
 
-#### Gibbs Sampling
+### Gibbs Sampling
 
 Consider the case where the parameters 
 $\theta = (\theta_1, \theta_2, \ldots, \theta_k)$ 
@@ -230,7 +230,7 @@ Step 3
 
 Typically this is performed for two or more independent chains.
 
-## JAGS and BUGS
+## JAGS and the BUGS Language
 
 Programming an efficient MCMC algorithm
 for a particular model is outside the scope of 
@@ -249,7 +249,7 @@ model1 <- jags_model("model {
 }") 
 ```
 
-then we call JAGS using `jaggernaut` in the default report mode 
+then we call JAGS using `jaggernaut` (in the default report mode)
 to generate a total of $\geq 10^3$ samples using three chains from $\theta$'s posterior probability distribution.
 
 ```{r, message=FALSE, warning=FALSE, results='hide'}
@@ -310,6 +310,9 @@ model1 <- jags_model("model {
 }")
 ```
 
+
+## Precision
+
 The standard deviations of the normal distributions are raised to the
 power of `-2` because (for historical reasons) Bayesians quantify variation 
 in terms of the *precision* ($\tau$) as opposed to the variance ($\sigma^2$) or standard deviation ($\sigma$) where $\tau = 1/\sigma^2$.
@@ -354,19 +357,18 @@ exercise("What do you notice about the trace plots? The output of
 
 ## Convergence 
 
-The $\hat{R}$ convergence metric uses the within-chain and between-chain variances
+The $\hat{R}$ (pronounced R-hat) convergence metric uses the within-chain and between-chain variances
 to quantify the extent to which the chains have converged on the same distribution. 
+Lack of convergence suggests that the MCMC samples may not be representative 
+of the posterior distributions.
 Although a value of `1.0` indicates full 
 convergence, $\hat{R} \leq 1.05$ is typically 
 considered sufficient for most papers and $\leq 1.10$ for most reports.
 
 ```{r, echo = FALSE, results = 'asis'}
 exercise("What is the R-hat value for each of the parameters in the current model? 
-         Use the `convergence` function with `combine = FALSE`.")
+         Clue: type `?convergence`.")
 ```
-
-Lack of convergence suggests that the MCMC samples may not be representative 
-of the posterior distributions.
 
 ## Iterations
 
@@ -377,13 +379,18 @@ iterations.
 analysis1 <- jags_analysis(model1, data = trees, niters = 10^4)
 ```
 
-```{r, fig.width = 6, fig.height = 6}
-plot(analysis1)
+```{r, fig.width = 6, fig.height = 4}
+plot(analysis1, parm = c("alpha", "beta"))
 ```
 
-## Modes
+```{r, echo = FALSE, results = 'asis'}
+exercise("What is the R-hat value for each of the parameters in the current model
+         with 10,000 iterations?")
+```
 
-In the default `opts_jagr()` `report` mode 
+## `jaggernaut` Options
+
+With the the default `options_jaggernaut(mode = "report")`  settings:
 
 - an adaptive phase of 100 iterations is undertaken to maximize sampling efficiency (chain mixing)
 - three chains of `niters` iterations in length are generated.
@@ -397,13 +404,9 @@ thinning again.
 - this is repeated up to three times or until the 
 convergence threshold of 1.1 is achieved.
 
-To see the current mode and option settings type `opts_jagr()` and
+To see the current mode and option settings type `options_jaggernaut()` 
+(or `opts_jagr()` for short) and
 for more information type `?opts_jagr`.
-
-```{r, echo = FALSE, results = 'asis'}
-exercise("Call `jags_analysis` with `niters = 10^2` and `mode = 'paper'`
-         How many updates are required for convergence to be achieved?")
-```
 
 ## Chain Mixing
 
@@ -413,11 +416,11 @@ reparameterising the model.
 In the current model, `Girth` can be centered, i.e., `Girth - mean(Girth)`, in the BUGS code or by setting the `select_data` argument to be `select_data(model1) <- c("Volume", "Girth+")`.
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("What is the effect of centering `Girth` on the trace plots?")
+exercise("What is the effect of centering `Girth` on the trace plots with 1,000 iterations?")
 ```
 
 Note if you ever want to examine the actual data being passed
-to JAGS set the modify_data term of your `jags_model` 
+to JAGS set the `modify_data` term of your `jags_model` 
 object to be a simple function that prints and returns its one argument 
 ```{r, tidy=FALSE}
 modify_data(model1) <- function (data) { print(data); data }
@@ -454,7 +457,7 @@ derived_code <- "data {
 }"
 ```
 
-### Predictions
+## Predictions
 
 To better understand a model and/or inform management decisions it is 
 generally useful to plot a model's predictions.
@@ -465,7 +468,8 @@ across the range of the observed values of `Girth`.
 
 ```{r, tidy=FALSE, message=FALSE, warning=FALSE, results='hide'}
 prediction <- predict(analysis1, newdata = "Girth", derived_code = derived_code)
-simulated <- predict(analysis1, parm = "simulated", newdata = "Girth", derived_code = derived_code)
+simulated <- predict(analysis1, parm = "simulated", newdata = "Girth", 
+                     derived_code = derived_code)
 ```
 
 ```{r, fig.width=3, fig.height=3, ,message=FALSE, warning=FALSE}
@@ -532,12 +536,12 @@ which can be reparameterised as a linear regression by log transforming
 $$log(Volume_{i})  = \alpha + \beta * log(Girth_{i}) + \epsilon_{i}$$
 
 Variables can be log transformed in the model code or in the `select_data`
-argument, i.e., `select_data(model1) <- c("log(Volume)", "log(Girth)")`.
+argument, i.e., `select_data(model1) <- c("log(Volume)", "log(Girth)+")`.
 
 ```{r, echo = FALSE, results = 'asis'}
 exercise("Fit the linear regression of the allometric model to the `trees` data set.
          Is the model fit improved?")
-exercise("Is there any support for adding `log(Height)` to the model?")
+exercise("Is there any support for adding `log(Height)+` to the model?")
 ```
 
 ## Significance Values
@@ -554,10 +558,7 @@ must be greater than zero).
 
 The error value in the table of coefficients is
 the *percent relative error*,  which is half the credible interval
-as a percent of the point estimate, i.e.,
-
-$$error = (upper - lower) * 0.5 / estimate * 100$$.
-
+as a percent of the point estimate. 
 Standard deviations with a uniform prior distribution that
 is not updated by the data have error values of 0.95.
 As a general rule, I question the informativeness
@@ -619,7 +620,7 @@ qplot(fitted, estimate, color = supp, shape = supp, data = residuals, xlab = "Fi
 ```
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("Is the effect of `OJ` significantly different from that of `VC`?")
+exercise("What is the significance value for the effect of `OJ` versus `VC`?")
 
 exercise("What does the residual plot suggest about the model fit?")
 ```
@@ -656,7 +657,7 @@ model_id(model1) <- "ANCOVA"
 model_id(model2) <- "regression"
 
 models <- combine(model1, model2)
-analyses <- jags_analysis(models, data = datasets::ToothGrowth)
+analyses <- jags_analysis(models, data = ToothGrowth)
 ```
 
 ```{r, fig.width = 4, fig.height = 3}
