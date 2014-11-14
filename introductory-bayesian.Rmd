@@ -491,7 +491,7 @@ exercise("The `newdata` argument in the `predict` function can also take a `data
          What is the 95% Prediction Interval for the `Volume` of a tree of `Girth` 8?")
 ```
 
-### Residuals
+## Residuals
 
 The model assumes that the error terms are independently drawn from a normal distribution.
 It is possible to assess the adequacy of this assumption by plotting the residual variation.
@@ -508,7 +508,7 @@ qplot(estimate, residual, data = fitted) + geom_hline(yintercept = 0) + geom_smo
 exercise("What does the current residual plot suggest to you about model adequacy?")
 ```
 
-### Posterior Predictive Checks
+## Posterior Predictive Checks
 
 A complementary approach to assessing model adequacy is to simulate data
 given the model parameters and compare it to the observed data. Any systematic
@@ -680,7 +680,7 @@ exercise("Fit 1) the ANCOVA, 2) the linear regression, 3) the ANOVA and 4) the A
 ### Effects Size
 
 Often the results of an analysis are easier to understand when 
-they are presented in terms of the percent change in the response.
+they are presented in terms of the percent change in the response [@bradford_using_2005].
 The following code predicts and plots the percent change in `len` 
 relative to 0.75 mg of Vitamin C.
 
@@ -702,8 +702,10 @@ exercise("Plot the percent change in `len` for all four models relative to 0.5 m
 
 # Peregrine Falcon Population
 
-Consider the peregrine falcon population data `?peregrine`.
-the following code regresses the number of reproductive `Pairs` on `Year`.
+Consider the `peregrine` falcon population data from Kery and Schuab [-@kery_bayesian_2011].
+(NB all the real data sets in Bayesian Population Analysis using WinBUGS have been
+imported into jaggernaut)
+The following code regresses the number of reproductive `Pairs` on `Year`.
 
 ```{r, tidy=FALSE}
 model1 <- jags_model("model {
@@ -748,7 +750,7 @@ print(gp)
 ```
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("Do you consider the model to be adequate?")
+exercise("What happens to the model's predictions if `Year` isn't centred?")
 ```
 
 ## Log-link Function
@@ -757,7 +759,7 @@ When a response variable cannot take negative values, the use of a log-link func
 the expected value must be positive.
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("Replace `ePairs[i] <- ` with `log(ePairs[i]) <- ...`. How does the log-link function alter the model?")
+exercise("Replace `ePairs[i] <- ...` with `log(ePairs[i]) <- ...`. How does the log-link function alter the model?")
 ```
 
 ## Poisson Distribution
@@ -779,7 +781,7 @@ exercise("Next, replace `Pairs[i] ~ dnorm(ePairs[i], sigma^-2)` with `Pairs[i] ~
 
 Curvature in a predictor variable can be modelled by allowing the influence of 
 a variable to vary with the variable. For example, the following model code
-fits a second-order polynomial on `Year`.
+fits a second-order (quadratic) polynomial on `Year`.
 
 ```{r, tidy = FALSE}
 model_code <- "model {
@@ -794,15 +796,19 @@ model_code <- "model {
 ```
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("Does it improve the model?")
-exercise("Fit a third-order polynomial (`beta3 * Year[i]^3`). How does it improve the model?")
-exercise("Use the third-order polynomial model to predict the number of breeding pairs in 2006.
+exercise("How does the second-order polynomial change the model's predictions?")
+exercise("Fit a third-order (cubic) polynomial regression (`... + Year[i]^2 + beta3 * Year[i]^3`). How does it alter the model?")
+exercise("Use the third-order polynomial regression to predict the number of breeding pairs in 2006.
          How confident are you in your answer?")
 ```
 
+## Statistical versus Scientific Modelling
+
+
+
 ## State-Space Population Growth Model
 
-An alternative to a polynomial would be to fit a state-space
+An alternative to a polynomial regression would be to fit a state-space
 population growth model which explicity estimates
 the step changes in the underlying population
 

@@ -1,12 +1,11 @@
 PackratFormat: 1.4
-PackratVersion: 0.4.1.3
+PackratVersion: 0.4.1.21
 RVersion: 3.1.2
 Repos: CRAN=http://cran.rstudio.com
 
 Package: BH
 Source: CRAN
-Version: 1.54.0-4
-Hash: 240790420ebcf7321eed885d421a8335
+Version: 1.54.0-5
 
 Package: DBI
 Source: CRAN
@@ -31,8 +30,8 @@ Hash: 6a849b729bec970204ca88b96906adbc
 Package: RCurl
 Source: CRAN
 Version: 1.95-4.3
-Hash: 158377109f939084a72f240125f821d3
 Requires: bitops
+Hash: 158377109f939084a72f240125f821d3
 
 Package: Rcpp
 Source: CRAN
@@ -57,14 +56,19 @@ Hash: cb26464a8321628636b547518994c931
 Package: caTools
 Source: CRAN
 Version: 1.17.1
-Hash: bb5fdc266f716b8a289a4f92007d53e3
 Requires: bitops
+Hash: bb5fdc266f716b8a289a4f92007d53e3
 
 Package: coda
 Source: CRAN
 Version: 0.16-1
-Hash: 8bdc942ab0d8cba20f6ed4b870569ef4
 Requires: lattice
+Hash: 8bdc942ab0d8cba20f6ed4b870569ef4
+
+Package: codetools
+Source: CRAN
+Version: 0.2-9
+Hash: b50ffdf434d3154c35b7183fdca87909
 
 Package: colorspace
 Source: CRAN
@@ -74,8 +78,8 @@ Hash: b775bd08a10f968fef582304b7c3ab9c
 Package: datalist
 Source: github
 Version: 0.4
-Hash: 83e9aaef9ce7a76a86a70149795a6ac858d071f0
 Requires: assertthat
+Hash: 83e9aaef9ce7a76a86a70149795a6ac858d071f0
 GithubRepo: datalist
 GithubUsername: poissonconsulting
 GithubRef: v0.4
@@ -84,9 +88,9 @@ GithubSha1: 83e9aaef9ce7a76a86a70149795a6ac858d071f0
 Package: devtools
 Source: CRAN
 Version: 1.6.1
-Hash: e3096b832604a7a36ff0a6455e5cdddc
 Requires: RCurl, digest, evaluate, httr, jsonlite, memoise, rstudioapi,
     whisker
+Hash: e3096b832604a7a36ff0a6455e5cdddc
 
 Package: dichromat
 Source: CRAN
@@ -101,26 +105,26 @@ Hash: e4bf0e79b15a352510aff0de905d31e2
 Package: doParallel
 Source: CRAN
 Version: 1.0.8
-Hash: c5ffe9ac9595f653295484f4d2a5c25d
 Requires: foreach, iterators
+Hash: c5ffe9ac9595f653295484f4d2a5c25d
 
 Package: dplyr
 Source: CRAN
 Version: 0.3.0.2
-Hash: 0da1a09895f941f144446a6d57d77095
 Requires: BH, DBI, R6, Rcpp, assertthat, lazyeval, magrittr
+Hash: 8c0821444e12d75a6167f47c9d090cc7
 
 Package: evaluate
 Source: CRAN
 Version: 0.5.5
-Hash: 20881970e590ee68de97a468694db7b0
 Requires: stringr
+Hash: 20881970e590ee68de97a468694db7b0
 
 Package: foreach
 Source: CRAN
 Version: 1.4.2
+Requires: codetools, iterators
 Hash: fbdaa99f6c6bd4f252c5d8412f6e79c9
-Requires: iterators
 
 Package: formatR
 Source: CRAN
@@ -130,8 +134,8 @@ Hash: a90c211d7df7e61a72b8ab6c99c2e848
 Package: ggplot2
 Source: CRAN
 Version: 1.0.0
-Hash: c8bff66238347472f08b6a35608539ff
 Requires: MASS, digest, gtable, plyr, proto, reshape2, scales
+Hash: c8bff66238347472f08b6a35608539ff
 
 Package: gtable
 Source: CRAN
@@ -146,14 +150,14 @@ Hash: 8c77cca8556e1501621b4a5ccb7999bd
 Package: htmltools
 Source: CRAN
 Version: 0.2.6
-Hash: 2c87108d130de261ac3c468d3316ae42
 Requires: digest
+Hash: 2c87108d130de261ac3c468d3316ae42
 
 Package: httr
 Source: CRAN
 Version: 0.5
-Hash: 68a70bdd16fb949a12e4fda7f31def00
 Requires: RCurl, digest, jsonlite, stringr
+Hash: 68a70bdd16fb949a12e4fda7f31def00
 
 Package: iterators
 Source: CRAN
@@ -163,15 +167,15 @@ Hash: b5320a58712688d5b18c207cf256ef3f
 Package: itertools
 Source: CRAN
 Version: 0.1-3
-Hash: 1ba05ae1d8e2304610818fcb49c4c9e1
 Requires: iterators
+Hash: 1ba05ae1d8e2304610818fcb49c4c9e1
 
 Package: jaggernaut
 Source: github
 Version: 2.2.2
-Hash: d159eec91dfbc5df2733b131b374888d98ff3da9
 Requires: Rcpp, abind, assertthat, coda, datalist, doParallel, foreach,
     itertools, juggler, plyr, rjags
+Hash: d159eec91dfbc5df2733b131b374888d98ff3da9
 GithubRepo: jaggernaut
 GithubUsername: poissonconsulting
 GithubRef: v2.2.2
@@ -185,8 +189,8 @@ Hash: dd2cfbfb6cce930fef0be435a7093e8a
 Package: juggler
 Source: github
 Version: 0.1.3
-Hash: c4704dc3066e9fc193802cc103e1e2251835e87f
 Requires: assertthat, tulip
+Hash: c4704dc3066e9fc193802cc103e1e2251835e87f
 GithubRepo: juggler
 GithubUsername: poissonconsulting
 GithubRef: v0.1.3
@@ -194,9 +198,9 @@ GithubSha1: c4704dc3066e9fc193802cc103e1e2251835e87f
 
 Package: knitr
 Source: CRAN
-Version: 1.7
-Hash: 2711841bd9ede48d13c4d14abc452b54
+Version: 1.8
 Requires: digest, evaluate, formatR, highr, markdown, stringr
+Hash: d00d7b314ca4c34f8a56ceacefb31b4f
 
 Package: labeling
 Source: CRAN
@@ -216,8 +220,8 @@ Hash: 2953778d951973e2889641c06275ecf3
 Package: lubridate
 Source: CRAN
 Version: 1.3.3
-Hash: f19612b23b1b15febdf30ee920a6e7df
 Requires: memoise, plyr, stringr
+Hash: f19612b23b1b15febdf30ee920a6e7df
 
 Package: magrittr
 Source: CRAN
@@ -227,14 +231,14 @@ Hash: 576e5bf21e3801499cebc27af6ad1627
 Package: markdown
 Source: CRAN
 Version: 0.7.4
-Hash: 01d7f71ed6e3d9b1c17ba51cff91be72
 Requires: mime
+Hash: 01d7f71ed6e3d9b1c17ba51cff91be72
 
 Package: memoise
 Source: CRAN
 Version: 0.2.1
-Hash: fc52fa39dfd216c44d64812ff31b1c67
 Requires: digest
+Hash: fc52fa39dfd216c44d64812ff31b1c67
 
 Package: mime
 Source: CRAN
@@ -244,23 +248,23 @@ Hash: 9179db921fcb2e5be44e217042ed06bc
 Package: munsell
 Source: CRAN
 Version: 0.4.2
-Hash: fa8af6d040041439b249351e9d16ae9a
 Requires: colorspace
+Hash: fa8af6d040041439b249351e9d16ae9a
 
 Package: packrat
 Source: github
-Version: 0.4.1.3
-Hash: ba203ed40d26e6d426d2ec453d36f131da3b3605
+Version: 0.4.1.21
+Hash: 1465218a399801f4b004440763bc1bfb8bae44c5
 GithubRepo: packrat
 GithubUsername: rstudio
 GithubRef: master
-GithubSha1: ba203ed40d26e6d426d2ec453d36f131da3b3605
+GithubSha1: 1465218a399801f4b004440763bc1bfb8bae44c5
 
 Package: plyr
 Source: CRAN
 Version: 1.8.1
-Hash: 6a287219196e18bc6261dc11b41b1ca0
 Requires: Rcpp
+Hash: 6a287219196e18bc6261dc11b41b1ca0
 
 Package: proto
 Source: CRAN
@@ -270,20 +274,20 @@ Hash: 668a9e87cedbdc5f56c396edf1bd2648
 Package: reshape2
 Source: CRAN
 Version: 1.4
-Hash: e50809918ebb73dff47de17d36d12975
 Requires: Rcpp, plyr, stringr
+Hash: e50809918ebb73dff47de17d36d12975
 
 Package: rjags
 Source: CRAN
 Version: 3-14
-Hash: 984445b35a2ba1fca442d2ba211d895a
 Requires: coda
+Hash: 984445b35a2ba1fca442d2ba211d895a
 
 Package: rmarkdown
 Source: github
 Version: 0.3.10
-Hash: b96214b9ac86b437067a0aa21442203f52face83
 Requires: caTools, htmltools, knitr, yaml
+Hash: b96214b9ac86b437067a0aa21442203f52face83
 GithubRepo: rmarkdown
 GithubUsername: rstudio
 GithubRef: v0.98.1000
@@ -297,8 +301,8 @@ Hash: 5bd4449a873ec652a05c932312dcf04b
 Package: scales
 Source: CRAN
 Version: 0.2.4
-Hash: b8b1af97bd07818605223060386b00dd
 Requires: RColorBrewer, dichromat, labeling, munsell, plyr
+Hash: b8b1af97bd07818605223060386b00dd
 
 Package: stringr
 Source: CRAN
@@ -308,8 +312,8 @@ Hash: cdde0cfa0f52cffeaca23a11a3899779
 Package: tulip
 Source: github
 Version: 0.0.11
-Hash: 48b96b9ede011c87859a87bd593ebc420c9b1029
 Requires: assertthat, devtools, lubridate
+Hash: 48b96b9ede011c87859a87bd593ebc420c9b1029
 GithubRepo: tulip
 GithubUsername: poissonconsulting
 GithubRef: v0.0.11
