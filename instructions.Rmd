@@ -1,0 +1,54 @@
+---
+title: "Installation for Introductory Bayesian Course"
+output: html_document
+---
+
+If you haven't already done so, download the base distribution binary of R 3.1.2 for your platform from <http://cran.r-project.org/> and install using the default options. Next download and install the
+most recent version of RStudio from <http://www.rstudio.com/products/rstudio/download/> using the default options. Then, download JAGS 3.4.0 from <http://sourceforge.net/projects/mcmc-jags/files/JAGS/> (right-click
+and open this link in a new window) and install with the default options. 
+
+To install all the required packages execute the following code at the R console.
+
+```{r, eval = FALSE}
+install.packages("devtools", quiet = TRUE)
+install.packages("dplyr", quiet = TRUE)
+install.packages("ggplot2", quiet = TRUE)
+install.packages("scales", quiet = TRUE)
+
+library(devtools)
+install_github("poissonconsulting/tulip@v0.0.11")
+install_github("poissonconsulting/datalist@v0.4")
+install_github("poissonconsulting/juggler@v0.1.3")
+install_github("poissonconsulting/jaggernaut@v2.2.3")
+```
+
+If everything was successful, when you run the following code
+```{r, eval=FALSE, tidy=FALSE}
+library(jaggernaut)
+model <- jags_model("model {
+ bLambda ~ dlnorm(0,10^-2)
+ for (i in 1:length(x)) {
+   x[i]~dpois(bLambda)
+ }
+}")
+
+summary(jags_analysis (model, data = data.frame(x = rpois(100,1))))
+```
+you should see something like
+```
+Analysis converged (rhat:1)
+
+Model1:
+
+Dimensions:
+samples  chains 
+   1500       3 
+
+Convergence:
+rhat 
+   1 
+
+Estimates:
+         estimate     lower    upper       sd error significance
+bLambda 0.8771658 0.7151765 1.062476 0.088936    20            0
+```

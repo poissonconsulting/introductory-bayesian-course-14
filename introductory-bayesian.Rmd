@@ -1,7 +1,7 @@
 ---
 title: "Introductory Bayesian Course"
 author: "Dr. Joseph L. Thorley"
-date: "November 13^th^, 2014"
+date: "November 14^th^, 2014"
 output:
   pdf_document:
     number_sections: yes
@@ -64,9 +64,9 @@ R/BUGS code to answer to the exercises.
 
 ## Installation
 
-If you haven't already done so, download the the most recent version of the R base distribution binary for your platform from <http://cran.r-project.org/> and install using the default options. Next download and install RStudio from <http://www.rstudio.com/products/rstudio/download/> using the default options. Then, download JAGS from <http://sourceforge.net/projects/mcmc-jags/files/JAGS/> and install with the default options. If you are using Windows please install
-the latest version of Rtools from <http://cran.r-project.org/bin/windows/Rtools/>. And for OSX users
-make sure you have the latest version of Xcode <https://developer.apple.com/xcode/>. 
+If you haven't already done so, download the base distribution binary of R 3.1.2 for your platform from <http://cran.r-project.org/> and install using the default options. Next download and install the
+most recent version of RStudio from <http://www.rstudio.com/products/rstudio/download/> using the default options. Then, download JAGS 3.4.0 from <http://sourceforge.net/projects/mcmc-jags/files/JAGS/> (right-click
+and open this link in a new window) and install with the default options. 
 
 To install all the required packages execute the following code at the R console.
 
@@ -80,7 +80,7 @@ library(devtools)
 install_github("poissonconsulting/tulip@v0.0.11")
 install_github("poissonconsulting/datalist@v0.4")
 install_github("poissonconsulting/juggler@v0.1.3")
-install_github("poissonconsulting/jaggernaut@v2.2.2")
+install_github("poissonconsulting/jaggernaut@v2.2.3")
 ```
 
 If everything was successful, when you run the following code
@@ -122,8 +122,10 @@ library(dplyr)
 library(ggplot2)
 library(scales)
 library(jaggernaut)
+options(digits = 4)
 ```
-to load the required packages in the search path, and 
+to load the required packages in the search path and
+to print numbers to four significant digits and 
 ```{r, eval = FALSE}
 graphics.off()
 rm(list = ls())
@@ -132,7 +134,7 @@ to clean up the workspace and close any graphics windows.
 
 # Bayesian and Frequentist Statistical Analysis
 
-Statistical analysis uses probability models 
+Statistical analysis uses one or more probability distributions 
 to provide bounded estimates of parameter values 
 ($\theta$) from the data ($y$).
 
@@ -142,7 +144,7 @@ A Bayesian on the other hand chooses the values with the highest *posterior* pro
 ## Coin Flips
 
 Consider the case where $n = 10$ flips of a coin produce $y = 3$ tails.
-We can model this using a binomial distribution
+We can model this using a [binomial distribution](http://en.wikipedia.org/wiki/Binomial_distribution).
 
 $$y \sim dbin(\theta, n)$$
 
@@ -175,7 +177,7 @@ $$\hat{\theta} \pm 1.96 \frac{1}{\sqrt{I(\hat{\theta})}}$$
 where $I(\hat{\theta})$ is the expected second derivative 
 of the log-likelihood at the estimate. This calculation is 
 based on the assumption that the sample size is of sufficient
-size that the likelihood is normally distributed.
+size that the likelihood is [normally distributed](http://en.wikipedia.org/wiki/Normal_distribution).
 
 In the current case, 
 
@@ -197,14 +199,9 @@ where $p(\theta)$ is the prior probability.
 Bayesians consider the necessity to define prior probabilities an advantage 
 because prior information can be incorporated into an analysis while 
 frequentists consider it [subjective](http://dilbert.com/strips/comic/2008-05-08/). 
-In most cases Bayesians use *low-information* priors which have little influence on the posteriors. 
-For example a uniform distribution with a lower limit of 0 and an upper limit of 1 ($dunif(0,1)$) is commonly used for probabilities.
-
-```{r, fig.width = 3, fig.height = 3}
-qplot(runif(10^6, 0, 1), geom = "density", xlab = "theta")
-```
-
-As it is generally not possible to calculate the 
+In most cases Bayesians use *low-information* priors which have little to no influence on the posteriors
+such as a [uniform distribution](http://en.wikipedia.org/wiki/Uniform_distribution_(continuous)) 
+with a lower limit of 0 and an upper limit of 1 for a probability. As it is generally not possible to calculate the 
 posterior probability, the  posterior probability distribution is sampled 
 using Markov Chain Monte Carlo (MCMC) algorithms such as Gibbs Sampling.
 
@@ -236,9 +233,7 @@ Programming an efficient MCMC algorithm
 for a particular model is outside the scope of 
 most research projects. 
 Fortunately, JAGS (which stands for Just Another Gibbs Sampler) can take a dataset
-and a model specified in the simple but flexible BUGS language (which stands for Bayesian Analysis Using Gibbs Sampling) and perform MCMC sampling for us. 
-
-In order to do this we will use the `jaggernaut` package to talk to
+and a model specified in the simple but flexible BUGS language (which stands for Bayesian Analysis Using Gibbs Sampling) and perform MCMC sampling for us. In order to do this we will use the `jaggernaut` package to talk to
 the standalone JAGS program via the `rjags` package.
 
 First we need to specify the underlying probability model in the BUGS language and save it as an object of class `jags_model`.
@@ -257,7 +252,7 @@ data <- data.frame(n = 10, y = 3)
 analysis1 <- jags_analysis(model1, data = data)
 ```
 
-```{r, fig.width=6, fig.height=3}
+```{r, fig.width=6, fig.height=2.5}
 plot(analysis1)
 coef(analysis1)
 ```
@@ -327,7 +322,7 @@ This only needs to be done once at the start of a session.
 I add it to my R script header.
 ```{r}
 if (getDoParWorkers() == 1) {
-  registerDoParallel(3)
+  registerDoParallel(4)
   opts_jagr(parallel = TRUE)
 }
 ```
@@ -339,8 +334,10 @@ data(trees)
 analysis1 <- jags_analysis(model1, data = trees)
 ```
 
-```{r, fig.width = 6, fig.height = 6}
-plot(analysis1)
+```{r, fig.width = 6, fig.height = 2.5}
+plot(analysis1, parm = "alpha")
+plot(analysis1, parm = "beta")
+plot(analysis1, parm = "sigma")
 coef(analysis1)
 ```
 
@@ -379,8 +376,10 @@ iterations.
 analysis1 <- jags_analysis(model1, data = trees, niters = 10^4)
 ```
 
-```{r, fig.width = 6, fig.height = 4}
-plot(analysis1, parm = c("alpha", "beta"))
+```{r, fig.width = 6, fig.height = 2.5}
+plot(analysis1, parm = "alpha")
+plot(analysis1, parm = "beta")
+plot(analysis1, parm = "sigma")
 ```
 
 ```{r, echo = FALSE, results = 'asis'}
@@ -410,8 +409,8 @@ for more information type `?opts_jagr`.
 
 ## Chain Mixing
 
-Cross-correlations between parameters, which cause poor chain mixing (i.e., high auto-correlation and poor
-convergence), can sometimes be eliminated or reduced by 
+Cross-correlations between parameters, which cause poor chain mixing, 
+i.e., high auto-correlation, can sometimes be eliminated or reduced by 
 reparameterising the model. 
 In the current model, `Girth` can be centered, i.e., `Girth - mean(Girth)`, in the BUGS code or by setting the `select_data` argument to be `select_data(model1) <- c("Volume", "Girth+")`.
 
@@ -524,7 +523,7 @@ exercise("What does the posterior predictive check suggest to you about model ad
 
 ## Allometry
 
-As discussed in the R course [notes](http://www.poissonconsulting.ca/course/2014/09/12/an-introduction-to-r-course.html) the relationship between `Volume` and `Girth` is expected to be [allometric](http://www.nature.com/scitable/knowledge/library/allometry-the-study-of-biological-scaling-13228439) because the cross-sectional area at an given point scales to the square of the girth (circumference).
+As discussed in the [R course notes](http://www.poissonconsulting.ca/course/2014/09/12/an-introduction-to-r-course.html) the relationship between `Volume` and `Girth` is expected to be [allometric](http://www.nature.com/scitable/knowledge/library/allometry-the-study-of-biological-scaling-13228439) because the cross-sectional area at an given point scales to the square of the girth (circumference).
 
 Expressed as an allometric relationship the model becomes
 
@@ -665,16 +664,15 @@ coef(analyses)
 
 prediction <- predict(analyses, newdata = c("supp", "dose"), model_id = "regression")
 
-gp <- ggplot(data = prediction, aes(x = dose, y = estimate, color = supp, shape = supp))
-gp <- gp + geom_point(data = dataset(analyses), aes(y = len))
-gp <- gp + geom_line()
-gp <- gp + scale_y_continuous(name = "len")
+gp <- gp %+% prediction
 
 print(gp)
 ```
 
 ```{r, echo = FALSE, results = 'asis'}
 exercise("Fit 1) the ANCOVA, 2) the linear regression, 3) the ANOVA and 4) the ANCOVA with an interaction between dose and supp models and plot their predictions. Which model do you prefer?")
+
+exercise("How might you further improve your preferred model?")
 ```
 
 ### Effects Size
@@ -684,13 +682,11 @@ they are presented in terms of the percent change in the response [@bradford_usi
 The following code predicts and plots the percent change in `len` 
 relative to 0.75 mg of Vitamin C.
 
-```{r, fig.width = 4, fig.height = 3}
+```{r, fig.width = 4, fig.height = 3, message=FALSE}
 prediction <- predict(analysis1, newdata = c("supp", "dose"), base = data.frame(supp = "OJ", dose = 0.75))
 
 gp <- ggplot(data = prediction, aes(x = dose, y = estimate, color = supp, shape = supp))
 gp <- gp + geom_line()
-gp <- gp + geom_line(aes(y = lower), linetype = "dashed")
-gp <- gp + geom_line(aes(y = upper), linetype = "dashed")
 gp <- gp + scale_y_continuous(name = "Effect on len (%)", labels = percent)
 
 print(gp)
@@ -700,11 +696,9 @@ print(gp)
 exercise("Plot the percent change in `len` for all four models relative to 0.5 mg of Vitamin C")
 ```
 
-# Peregrine Falcon Population
+# Peregrine Falcon Population Abundance
 
 Consider the `peregrine` falcon population data from Kery and Schuab [-@kery_bayesian_2011].
-(NB all the real data sets in Bayesian Population Analysis using WinBUGS have been
-imported into jaggernaut)
 The following code regresses the number of reproductive `Pairs` on `Year`.
 
 ```{r, tidy=FALSE}
@@ -743,6 +737,7 @@ gp <- gp + geom_point(data = dataset(analysis1), aes(y = Pairs))
 gp <- gp + geom_line()
 gp <- gp + geom_line(aes(y = lower), linetype = "dashed")
 gp <- gp + geom_line(aes(y = upper), linetype = "dashed")
+gp <- gp + scale_x_continuous(name = "Year")
 gp <- gp + scale_y_continuous(name = "Pairs")
 gp <- gp + expand_limits(y = 0)
 
@@ -753,7 +748,7 @@ print(gp)
 exercise("What happens to the model's predictions if `Year` isn't centred?")
 ```
 
-## Log-link Function
+## Log-Link Function
 
 When a response variable cannot take negative values, the use of a log-link function ensures that 
 the expected value must be positive.
@@ -764,13 +759,9 @@ exercise("Replace `ePairs[i] <- ...` with `log(ePairs[i]) <- ...`. How does the 
 
 ## Poisson Distribution
 
-The Poisson distribution models counts about a positive mean expected value. 
+The [Poisson distribution](http://en.wikipedia.org/wiki/Poisson_distribution) 
+models counts about a positive mean expected value. 
 It can only assume discrete non-negative values and has a variance equal to the mean.
-
-```{r, fig.width = 3, fig.height = 3}
-qplot(rpois(1000, 1), geom = "histogram", binwidth = 1, color = I("white"), xlim = c(0, 30))
-qplot(rpois(1000, 10), geom = "histogram", binwidth = 1, color = I("white"), xlim = c(0, 30)) 
-```
 
 ```{r, echo = FALSE, results = 'asis'}
 exercise("Next, replace `Pairs[i] ~ dnorm(ePairs[i], sigma^-2)` with `Pairs[i] ~ dpois(ePairs[i])`.
@@ -781,7 +772,7 @@ exercise("Next, replace `Pairs[i] ~ dnorm(ePairs[i], sigma^-2)` with `Pairs[i] ~
 
 Curvature in a predictor variable can be modelled by allowing the influence of 
 a variable to vary with the variable. For example, the following model code
-fits a second-order (quadratic) polynomial on `Year`.
+fits a second-order (quadratic) polynomial regression on `Year`.
 
 ```{r, tidy = FALSE}
 model_code <- "model {
@@ -802,10 +793,6 @@ exercise("Use the third-order polynomial regression to predict the number of bre
          How confident are you in your answer?")
 ```
 
-## Statistical versus Scientific Modelling
-
-
-
 ## State-Space Population Growth Model
 
 An alternative to a polynomial regression would be to fit a state-space
@@ -821,26 +808,21 @@ model6 <- jags_model("model {
   mean_r ~ dnorm(0, 1^-2)
   sd_r ~ dunif(0, 1)
   
-  logN1 ~ dnorm(0, 10^-2)
-  logN[1] <- logN1
+  logN[1] ~ dnorm(0, 10^-2)
   for(i in 2:nYear) {
+    r[i-1] ~ dnorm(mean_r, sd_r^-2)
     logN[i] <- logN[i-1] + r[i-1]
   }
-  
-  for(i in 1:nYear) {
-    r[i] ~ dnorm(mean_r, sd_r^-2)
-    Pairs[i] ~ dpois(exp(logN[i]))
+  for(i in 1:length(Pairs)) {
+    Pairs[i] ~ dpois(exp(logN[Year[i]]))
   }
+  logN1 <- logN[1]
 }",
 derived_code = "data {
   for(i in 1:length(Pairs)) {
     log(prediction[i]) <- logN[Year[i]]
   }
 }",
-modify_data = function (data) {
-  stopifnot(!is.unsorted(data$Year))
-  data
-},
 select_data = c("Pairs", "Year"),
 random_effects = list(r = "Year", logN = "Year"))
 ```
@@ -852,24 +834,14 @@ and table of coefficients.
 ```{r, message=FALSE, warning=FALSE, results='hide'}
 peregrine$Year <- factor(peregrine$Year)
 analysis6 <- jags_analysis(model6, data = peregrine)
-```
-
-```{r, fig.width = 6, fig.height = 6}
-plot(analysis6)
 coef(analysis6)
 ```
 
 ```{r, fig.width = 3, fig.height = 3}
 prediction <- predict(analysis6)
 
-gp <- ggplot(data = prediction, aes(x = as.integer(as.character(Year)), y = estimate))
-gp <- gp + geom_point(data = dataset(analysis6), aes(y = Pairs))
-gp <- gp + geom_line()
-gp <- gp + geom_line(aes(y = lower), linetype = "dashed")
-gp <- gp + geom_line(aes(y = upper), linetype = "dashed")
-gp <- gp + scale_x_continuous(name = "Year")
-gp <- gp + scale_y_continuous(name = "Pairs")
-gp <- gp + expand_limits(y = 0)
+gp <- gp + aes(x = as.integer(as.character(Year)))
+gp <- gp %+% prediction
 
 print(gp)
 ```
@@ -883,16 +855,76 @@ exercise("What is the probability that the population in 2008 will be
          by simply appending five years of missing counts to the dataset.")
 ```
 
-## Logistic Model
+## Overdispersed Poisson
 
-Now let us consider the number of `Pairs` that successfully reproduced (`R.pairs`).
+The Poisson distribution assumes that the variation in the counts about
+the expected value is due to independent events. Often
+however this assumption is violated and the variance is greater than the
+mean. In this case an overdispersed Poisson distribution is required.
+
+The following model uses a [gamma distribution](http://en.wikipedia.org/wiki/Gamma_distribution) 
+where the scale and shape parameters are both `1 / sDispersion^2` to generate
+the extra-Poisson multiplier because such a distribution has a mean of 1, a standard
+deviation of `sDispersion` and is always positive.
+
+```{r, tidy=FALSE}
+model7 <- jags_model("model {
+  mean_r ~ dnorm(0, 1^-2)
+  sd_r ~ dunif(0, 1)
+  
+  logN[1] ~ dnorm(0, 10^-2)
+  for(i in 2:nYear) {
+    r[i-1] ~ dnorm(mean_r, sd_r^-2)
+    logN[i] <- logN[i-1] + r[i-1]
+  }
+  sDispersion ~ dunif(0, 5)
+  for(i in 1:length(Pairs)) {
+    eDispersion[i] ~ dgamma(1 / sDispersion^2, 1 / sDispersion^2)
+
+    Pairs[i] ~ dpois(exp(logN[Year[i]]) * eDispersion[i])
+  }
+  logN1 <- logN[1]
+}",
+derived_code = "data {
+  for(i in 1:length(Pairs)) {
+    log(prediction[i]) <- logN[Year[i]]
+  }
+}",
+select_data = c("Pairs", "Year"),
+random_effects = list(r = "Year", logN = "Year"))
+```
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+analysis7 <- jags_analysis(model7, data = peregrine)
+```
 
 ```{r, fig.width = 3, fig.height = 3}
+coef(analysis7)
+
+prediction <- predict(analysis7)
+
+gp <- gp %+% prediction
+
+print(gp)
+```
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("Is the inclusion of a Plot the state-space population growth rate model predictions in terms 
+         of the percent change since 1970. What is the estimated percent
+         change in the population in 2003 compared to 1970?")
+```
+
+# Peregrine Falcon Breeding Success
+
+Now let us consider the proportion of `peregrine` `Pairs` 
+that successfully reproduced (`R.pairs/Pairs`).
+
+```{r, tidy=FALSE}
 data(peregrine)
 
 peregrine$Proportion <- peregrine$R.Pairs / peregrine$Pairs
 
-model7 <- jags_model("model {
+model1 <- jags_model("model {
   alpha ~ dnorm(0, 1^-2)
   beta ~ dnorm(0, 1^-2)
   sigma ~ dunif(0, 1)
@@ -910,14 +942,14 @@ select_data = c("Proportion", "Year+"))
 ```
 
 ```{r, message=FALSE, warning=FALSE, results='hide'}
-analysis7 <- jags_analysis(model7, data = peregrine)
+analysis1 <- jags_analysis(model1, data = peregrine)
 ```
 
 ```{r, fig.width = 3, fig.height = 3}
-prediction <- predict(analysis7)
+prediction <- predict(analysis1)
 
 gp <- ggplot(data = prediction, aes(x = Year, y = estimate))
-gp <- gp + geom_point(data = dataset(analysis7), aes(y = Proportion))
+gp <- gp + geom_point(data = dataset(analysis1), aes(y = Proportion))
 gp <- gp + geom_line()
 gp <- gp + geom_line(aes(y = lower), linetype = "dashed")
 gp <- gp + geom_line(aes(y = upper), linetype = "dashed")
@@ -929,14 +961,115 @@ print(gp)
 ```
 
 ```{r, echo = FALSE, results = 'asis'}
-exercise("Fit a second-order polynomial regression to the proportion of successful pairs")
-exercise("Add a logistic-link function, i.e., logit(eProportion[i]) <- ")
-exercise("Replace the normal distribution `Proportion[i] ~ dnorm(eProportion[i], sigma^-2)` 
-         with the binomial distribution `R.Pairs ~ dbin(eProportion[i], Pairs[i])`")
-exercise("Replace the polynomial with a first-order difference auto-regressive term")
-exercise("Add extra-binomial variation through a normally distributed random effect on 
-         `logit(eProportion[i])`")
+exercise("How does a second-order polynomial regression alter the model's predictions?")
 ```
+
+## Logistic-Link Function
+
+When a response variable is a probability, the use of the logistic-link function ensures that 
+the expected values must lie between 0 and 1.
+
+$$logit(p) = log(\frac{p}{1-p})$$
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("How does adding the logistic-link function, i.e., `logit(eProportion[i]) <- ...` alter the model's
+predictions?")
+```
+
+## Binomial Distribution
+
+The [binomial distribution](http://en.wikipedia.org/wiki/Binomial_distribution) 
+models the number of successes given the expected probability of successes
+and the number of independent trials.
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("How does replacing the normal distribution `Proportion[i] ~ dnorm(eProportion[i], sigma^-2)` 
+         with the binomial distribution `R.Pairs ~ dbin(eProportion[i], Pairs[i])` alter the model?")
+```
+
+## Autoregressive Smoothing
+
+Earlier we used an autoregressive term to explicitly model population change.
+Autoregressive models can also be used simply for their smoothing properties.
+
+Here we model the differences in the log-odds probability of
+breeding success from one year to the next as a 
+normally distributed random effect.
+
+```{r, tidy=FALSE}
+model2 <- jags_model("model {
+  theta[1] ~ dnorm(0, 2^-2)
+  sigma ~ dunif(0, 2)
+  for(i in 2:length(R.Pairs)) {
+    theta[i] ~ dnorm(theta[i-1], sigma^-2)
+  }
+  for(i in 1:length(R.Pairs)) {
+    logit(eProportion[i]) <- theta[i]
+    R.Pairs[i] ~ dbin(eProportion[i], Pairs[i])
+  }
+}",
+derived_code = "data {
+  for(i in 1:length(R.Pairs)) {
+    logit(prediction[i]) <- theta[Year[i]]
+  }
+}",
+random_effect = list(theta = "Year"),
+select_data = c("R.Pairs", "Pairs", "Year"))
+```
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+data(peregrine)
+peregrine$Year <- factor(peregrine$Year)
+
+analysis2 <- jags_analysis(model2, data = peregrine)
+```
+
+```{r, fig.width = 3, fig.height = 3}
+prediction <- predict(analysis2)
+
+gp <- gp + aes(as.integer(as.character(Year)))
+gp <- gp %+% prediction
+
+print(gp)
+```
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("What happens to the model if you replace line 5 with `theta[i] <- theta[i-1]`?")
+```
+
+## Overdispersed Binomial Distribution
+
+The binomial distribution assumes independent trials.
+Often this is not the case. Overdispersion
+can be simply modelled through a random effect on the expected probability
+of success for each sample.
+
+```{r, echo = FALSE, results = 'asis'}
+exercise("What effect does a normally distributed random effect on
+         `logit(eProportion[i])` have on the model? Are the data overdispersed?")
+```
+
+# Further Information
+
+The [JAGS manual](http://www.poissonconsulting.ca/jags/user-manual/v3-4-0.pdf) 
+is definitely worth a read to familiarise yourself
+with the available distributions and functions.
+
+All the R and BUGS code for the analyses Poisson Consulting Ltd. staff perform
+is available under MIT open source licences from 
+[GitHub](https://github.com/poissonconsulting).
+
+The following blog plot articulates: 
+[the joy and martyrdom of trying to be a Bayesian](http://www.petrkeil.com/?p=1515).
+
+And finally, to avoid contributing to 
+the [statistical crisis in science](http://www.stat.columbia.edu/~gelman/research/published/bayes_management.pdf) please
+
+* publish *all* your comparisons (so others can assess the [researcher degrees of freedom](http://andrewgelman.com/2012/11/01/researcher-degrees-of-freedom/))
+* release *all* your code
+* make your data public (with the data owner's permission of course)
+
+In other words allow the scientific community to fully understand and replicate what you have done.
 
 # References
 
