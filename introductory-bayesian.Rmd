@@ -3,11 +3,11 @@ title: "Introductory Bayesian Course"
 author: "Dr. Joseph L. Thorley"
 date: "November 14^th^, 2014"
 output:
-  html_document:
-    keep_md: yes
-    toc: yes
   pdf_document:
     number_sections: yes
+    toc: yes
+  html_document:
+    keep_md: yes
     toc: yes
 bibliography: bibliography.bib
 ---
@@ -110,8 +110,8 @@ rhat
    1 
 
 Estimates:
-         estimate     lower    upper       sd error significance
-bLambda 0.8771658 0.7151765 1.062476 0.088936    20            0
+        estimate     lower    upper       sd error significance
+bLambda 1.015088 0.8289286 1.232213 0.099848    20        7e-04
 ```
 
 ## R Script Headers
