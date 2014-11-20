@@ -174,13 +174,13 @@ Requires: iterators
 Package: jaggernaut
 Source: github
 Version: 2.2.5
-Hash: 460a18f837213d536afef830519ea5825fe697c6
+Hash: e273e14a21910e49cc427c281568bf7ceb8a23db
 Requires: abind, assertthat, coda, datalist, doParallel, foreach,
     itertools, juggler, plyr, rjags
 GithubRepo: jaggernaut
 GithubUsername: poissonconsulting
 GithubRef: v2.2.5
-GithubSha1: 460a18f837213d536afef830519ea5825fe697c6
+GithubSha1: e273e14a21910e49cc427c281568bf7ceb8a23db
 
 Package: jsonlite
 Source: CRAN
