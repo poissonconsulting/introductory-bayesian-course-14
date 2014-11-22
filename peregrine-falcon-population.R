@@ -1,7 +1,7 @@
 source("header.R")
 
 model1 <- jags_model("model {
-  alpha ~ dnorm(0, 100^-2)
+  alpha ~ dnorm(0, 20000^-2)
   beta ~ dnorm(0, 100^-2)
   sigma ~ dunif(0, 100)
   for(i in 1:length(Pairs)) {
@@ -22,7 +22,6 @@ analysis1 <- jags_analysis(model1, data = peregrine)
 
 coef(analysis1)
 
-message("Do you consider the model to be adequate?")
 
 prediction <- predict(analysis1)
 
@@ -33,6 +32,58 @@ gp <- gp + geom_line(aes(y = lower), linetype = "dashed")
 gp <- gp + geom_line(aes(y = upper), linetype = "dashed")
 gp <- gp + scale_y_continuous(name = "Pairs")
 
+quartz()
+print(gp)
+
+source("header.R")
+
+model1 <- jags_model("model {
+  alpha ~ dnorm(0, 20000^-2)
+  beta ~ dnorm(0, 100^-2)
+  beta2 ~ dnorm(0, 100^-2)
+  beta3 ~ dnorm(0, 100^-2)
+  sDispersion ~ dunif(0, 5)
+  for(i in 1:length(Pairs)) {
+    eDispersion[i] ~ dgamma(1 / sDispersion^2, 1 / sDispersion^2)
+    log(ePairs[i]) <- alpha + beta * Year[i] + beta2 * Year[i]^2 + beta3 * Year[i]^3
+    Pairs[i] ~ dpois(ePairs[i] * eDispersion[i])
+  }
+}",
+                     derived_code = "data {
+  for(i in 1:length(Pairs)) {
+    log(prediction[i]) <- alpha + beta * Year[i] + beta2 * Year[i]^2 + beta3 * Year[i]^3
+  }
+}",
+                     select_data = c("Pairs", "Year+"))
+
+data(peregrine)
+
+analysis1 <- jags_analysis(model1, data = peregrine)
+
+coef(analysis1)
+
+
+prediction <- predict(analysis1)
+
+gp <- ggplot(data = prediction, aes(x = Year, y = estimate))
+gp <- gp + geom_point(data = dataset(analysis1), aes(y = Pairs))
+gp <- gp + geom_line()
+gp <- gp + geom_line(aes(y = lower), linetype = "dashed")
+gp <- gp + geom_line(aes(y = upper), linetype = "dashed")
+gp <- gp + scale_y_continuous(name = "Pairs")
+gp <- gp + expand_limits(y = 0)
+quartz()
+print(gp)
+
+predict(analysis1, newdata = data.frame(Year = as.integer(2006)))
+
+select_data(model1) <- c("Pairs", "Year")
+
+analysis2 <- jags_analysis(model1, data = peregrine)
+
+prediction <- predict(analysis2)
+gp <- gp %+% prediction
+quartz()
 print(gp)
 
 message("Replace `ePairs[i] <- ` with `log(ePairs[i]) <- ...`. How does the log-link function alter the model?")

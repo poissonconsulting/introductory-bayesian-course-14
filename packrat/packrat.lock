@@ -49,6 +49,11 @@ Source: CRAN
 Version: 0.1
 Hash: 4b419cfdc33a3019a7f3c6f0cdea6c38
 
+Package: bayesm
+Source: CRAN
+Version: 2.2-5
+Hash: 985af98628d7c92f6f7dadb24d1904dd
+
 Package: bitops
 Source: CRAN
 Version: 1.0-6

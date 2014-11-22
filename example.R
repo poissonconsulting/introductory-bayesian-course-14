@@ -5,8 +5,8 @@ model {
   for(i in 1:nsupp) {
     alpha[i] ~ dnorm(0, 40^-2)
   }
-  beta ~ dnorm(0, 100^-2)
-  sigma ~ dunif(0, 10)
+  beta ~ dnorm(0, 20^-2)
+  sigma ~ dunif(0, 20)
   
   for(i in 1:length(len)) { 
     eLen[i] <- alpha[supp[i]] + beta * dose[i]
@@ -21,11 +21,97 @@ data{
   residual <- (len - prediction) / sigma
 }")
 
+model_id(model1) <- "ANCOVA"
+
+model2 <- jags_model("model {
+  alpha ~ dnorm(0, 40^-2)
+  beta ~ dnorm(0, 20^-2)
+  sigma ~ dunif(0, 20)
+  
+  for(i in 1:length(len)) { 
+    eLen[i] <- alpha + beta * dose[i]
+    len[i] ~ dnorm(eLen[i], sigma^-2)
+  } 
+}",
+derived_code  = " data{
+  for(i in 1:length(len)) { 
+    prediction[i] <- alpha + beta * dose[i]
+  }
+  residual <- (len - prediction) / sigma
+}",
+select_data = c("len", "dose"),
+model_id = "regression")
+
+model3 <- jags_model("
+model {
+  for(i in 1:nsupp) {
+    alpha[i] ~ dnorm(0, 40^-2)
+  }
+  sigma ~ dunif(0, 20)
+  
+  for(i in 1:length(len)) { 
+    eLen[i] <- alpha[supp[i]] 
+    len[i] ~ dnorm(eLen[i], sigma^-2)
+  } 
+}",
+derived_code  = "
+data{
+  for(i in 1:length(len)) { 
+    prediction[i] <- alpha[supp[i]]
+  }
+  residual <- (len - prediction) / sigma
+}",
+select_data = c("len", "supp"),
+model_id = "ANOVA")
+
+model4 <- jags_model("
+model {
+  for(i in 1:nsupp) {
+    alpha[i] ~ dnorm(0, 40^-2)
+    beta[i] ~ dnorm(0, 20^-2)
+  }
+  sigma ~ dunif(0, 20)
+  
+  for(i in 1:length(len)) { 
+    eLen[i] <- alpha[supp[i]] + beta[supp[i]] * dose[i]
+    len[i] ~ dnorm(eLen[i], sigma^-2)
+  } 
+}",
+derived_code  = "
+data{
+  for(i in 1:length(len)) { 
+    prediction[i] <- alpha[supp[i]] + beta[supp[i]] * dose[i]
+  }
+  residual <- (len - prediction) / sigma
+}",
+model_id = "ANCOVA+")
+
+models <- combine(model1, model2, model3, model4)
+analyses <- jags_analysis(models, data = ToothGrowth)
+
+coef(analyses)
+
+prediction <- data.frame()
+model_ids <- model_id(analyses, reference = TRUE)
+for(model_id in model_ids) {
+  pred <- predict(analyses, newdata = c("supp", "dose"), model_id = model_id)  
+  pred$ModelID <- factor(model_id, levels = model_ids)
+  prediction <- rbind(prediction, pred)
+}
+
+gp <- ggplot(data = prediction, aes(x = dose, y = estimate, color = supp, shape = supp))
+gp <- gp + facet_wrap(~ModelID)
+gp <- gp + geom_point(data = dataset(analyses), aes(y = len))
+gp <- gp + geom_line()
+gp <- gp + scale_y_continuous(name = "len")
+quartz()
+
+print(gp)
+
+
+
 data(ToothGrowth)
 analysis1 <- jags_analysis(model1, data = ToothGrowth)
-
-quartz()
-plot(analysis1)
 
 prediction <- predict(analysis1, newdata = c("supp", "dose"))
 
