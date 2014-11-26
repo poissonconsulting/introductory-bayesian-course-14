@@ -1,4 +1,3 @@
-introductory-bayesian-course-14
-===============================
+Introductory Bayesian Course Notes
 
-Course notes for Introductory Bayesian Course 2014
+The presented material can be viewed at <http://www.poissonconsulting.ca/course/2014/11/14/introductory-bayesian-course.html>.
